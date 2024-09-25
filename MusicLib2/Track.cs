@@ -42,10 +42,10 @@ public record struct Track(
     }
 
     public static IEnumerable<Track> AllTracks(bool authorized) {
-        if (!Directory.Exists(ApplicationDbContext.musicDir))
-            Directory.CreateDirectory(ApplicationDbContext.musicDir);
+        if (!Directory.Exists(Paths.musicDir))
+            Directory.CreateDirectory(Paths.musicDir);
         Extras extras = Extras.Read();
-        return from path in Directory.EnumerateFiles(ApplicationDbContext.musicDir)
+        return from path in Directory.EnumerateFiles(Paths.musicDir)
             where Path.GetExtension(path) is ".mp3" or ".opus" or ".ogg" or ".m4a" or ".flac" or ".wav"
             let track = FromFile(path, extras)
             where authorized || !string.IsNullOrEmpty(track.artist)
@@ -53,20 +53,20 @@ public record struct Track(
     }
 
     public static IEnumerable<string> AllPlaylists() {
-        if (!Directory.Exists(ApplicationDbContext.musicDir))
-            Directory.CreateDirectory(ApplicationDbContext.musicDir);
-        return from path in Directory.EnumerateFiles(ApplicationDbContext.musicDir)
+        if (!Directory.Exists(Paths.musicDir))
+            Directory.CreateDirectory(Paths.musicDir);
+        return from path in Directory.EnumerateFiles(Paths.musicDir)
             where Path.GetExtension(path) is ".m3u" or ".m3u8"
             select Path.GetFileName(path);
     }
 
     public static IEnumerable<Track> AllFromPlaylist(string path) {
-        if (!Directory.Exists(ApplicationDbContext.musicDir))
-            Directory.CreateDirectory(ApplicationDbContext.musicDir);
+        if (!Directory.Exists(Paths.musicDir))
+            Directory.CreateDirectory(Paths.musicDir);
         Extras extras = Extras.Read();
         return from line in File.ReadLines(path)
             where !line.StartsWith('#')
-            let trackPath = Path.Join(ApplicationDbContext.musicDir, line)
+            let trackPath = Path.Join(Paths.musicDir, line)
             where File.Exists(trackPath)
             select FromFile(trackPath, extras);
     }

@@ -56,8 +56,10 @@ app.UseCors();
 
 RouteGroupBuilder baseGroup = app.MapGroup("/v2");
 
-baseGroup.MapGet("/auth", (HttpContext ctx) =>
-    !TryAuthorize(ctx) ? Results.Text("Invalid token") : Results.Text("")).WithOpenApi();
+baseGroup.MapGet("/auth", (HttpContext ctx) => {
+    Paths.RefreshAuth();
+    return !TryAuthorize(ctx) ? Results.Text("Invalid token") : Results.Text("");
+}).WithOpenApi();
 
 baseGroup.MapGet("/tracks", (HttpContext ctx) => Results.Json(Track.AllTracks(TryAuthorize(ctx)))).WithOpenApi();
 
@@ -66,7 +68,7 @@ baseGroup.MapGet("/playlists", () => Results.Json(Track.AllPlaylists())).WithOpe
 baseGroup.MapGet("/playlist/{fileName}", (string fileName) => {
     if (fileName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
         return Results.BadRequest("Filename contains invalid character.");
-    string path = Path.Join(ApplicationDbContext.musicDir, fileName);
+    string path = Path.Join(Paths.musicDir, fileName);
     return !File.Exists(path) ? Results.NotFound("Playlist not found.") : Results.Json(Track.AllFromPlaylist(path));
 }).WithOpenApi();
 
@@ -83,5 +85,5 @@ return;
 
 static bool TryAuthorize(HttpContext ctx) {
     string[]? auth = ctx.Request.Headers.Authorization.FirstOrDefault()?.Split(' ');
-    return auth is ["Bearer", { } token] && ApplicationDbContext.tokens.Contains(token);
+    return auth is ["Bearer", { } token] && Paths.tokens.Contains(token);
 }
