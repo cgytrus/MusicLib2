@@ -1,7 +1,4 @@
-using System.Collections.Immutable;
 using System.Runtime.InteropServices;
-using System.Text.Json;
-using Microsoft.EntityFrameworkCore;
 using MusicLib2;
 using YoutubeDLSharp;
 
@@ -9,9 +6,6 @@ WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
-//builder.Services.AddDbContext<ApplicationDbContext>();
-//builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 builder.Services.AddCors(options => {
     options.AddDefaultPolicy(policy => {
