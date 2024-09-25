@@ -1,0 +1,62 @@
+@Host = http://localhost:5207
+@Base = {{Host}}/music/v2
+
+@PlaylistFilename = save..m3u8
+@Token = Br3eLY1DfgaQxZDeTIYZVA
+@DraftId = 1
+@FileLink = https%3A%2F%2Fsoundcloud.com%2Fcoltranecore%2Fzeke-didnt-invent-dariacore-i-did
+@FileId = 1
+
+###
+
+GET {{Base}}/auth
+Authorization: Bearer {{Token}}
+
+###
+
+GET {{Base}}/tracks
+
+###
+
+GET {{Base}}/playlists
+###
+GET {{Base}}/playlist/{{PlaylistFilename}}
+
+###
+
+GET {{Base}}/drafts
+Authorization: Bearer {{Token}}
+###
+POST {{Base}}/draft
+Authorization: Bearer {{Token}}
+###
+GET {{Base}}/draft/{{DraftId}}
+Authorization: Bearer {{Token}}
+###
+PUT {{Base}}/draft/{{DraftId}}/meta
+Authorization: Bearer {{Token}}
+###
+POST {{Base}}/draft/{{DraftId}}/file/{{FileLink}}
+Authorization: Bearer {{Token}}
+###
+GET {{Base}}/draft/{{DraftId}}/file/{{FileId}}
+Authorization: Bearer {{Token}}
+###
+GET {{Base}}/draft/{{DraftId}}/file/{{FileId}}/spectrogram
+Authorization: Bearer {{Token}}
+###
+DELETE {{Base}}/draft/{{DraftId}}/file/{{FileId}}
+Authorization: Bearer {{Token}}
+###
+POST {{Base}}/draft/{{DraftId}}/finalize/{{FileId}}
+Authorization: Bearer {{Token}}
+###
+DELETE {{Base}}/draft/{{DraftId}}
+Authorization: Bearer {{Token}}
+
+###
+
+DELETE {{Base}}/cache
+Authorization: Bearer {{Token}}
+
+###

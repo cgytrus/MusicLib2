@@ -1,0 +1,6 @@
+﻿services:
+  musiclib2:
+    image: musiclib2
+    build:
+      context: .
+      dockerfile: MusicLib2/Dockerfile
