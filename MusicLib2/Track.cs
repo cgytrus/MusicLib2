@@ -41,13 +41,15 @@ public record struct Track(
         return track;
     }
 
-    public static IEnumerable<Track> AllTracks() {
+    public static IEnumerable<Track> AllTracks(bool authorized) {
         if (!Directory.Exists(ApplicationDbContext.musicDir))
             Directory.CreateDirectory(ApplicationDbContext.musicDir);
         Extras extras = Extras.Read();
         return from path in Directory.EnumerateFiles(ApplicationDbContext.musicDir)
             where Path.GetExtension(path) is ".mp3" or ".opus" or ".ogg" or ".m4a" or ".flac" or ".wav"
-            select FromFile(path, extras);
+            let track = FromFile(path, extras)
+            where authorized || !string.IsNullOrEmpty(track.artist)
+            select track;
     }
 
     public static IEnumerable<string> AllPlaylists() {

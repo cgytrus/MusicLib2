@@ -59,7 +59,7 @@ RouteGroupBuilder baseGroup = app.MapGroup("/v2");
 baseGroup.MapGet("/auth", (HttpContext ctx) =>
     !TryAuthorize(ctx) ? Results.Text("Invalid token") : Results.Text("")).WithOpenApi();
 
-baseGroup.MapGet("/tracks", () => Results.Json(Track.AllTracks())).WithOpenApi();
+baseGroup.MapGet("/tracks", (HttpContext ctx) => Results.Json(Track.AllTracks(TryAuthorize(ctx)))).WithOpenApi();
 
 baseGroup.MapGet("/playlists", () => Results.Json(Track.AllPlaylists())).WithOpenApi();
 
