@@ -159,10 +159,23 @@ draftGroup.MapPut("/{draftId}/meta", async (HttpContext ctx, uint draftId) => {
 draftGroup.MapPut("/{draftId}/art", async (HttpContext ctx, uint draftId) => {
     if (!TryAuthorize(ctx))
         return Results.Unauthorized();
+    if (ctx.Request.ContentType is null)
+        return Results.BadRequest("Content type required.");
     string dir = Path.Join(Paths.drafts, draftId.ToString());
     if (!Directory.Exists(dir))
         return Results.NotFound("Draft does not exist.");
-    await Draft.SaveArt(Path.Join(dir, "art.jpg"), ctx.Request.Body);
+    if (ctx.Request.ContentType.StartsWith("text/")) {
+        string link;
+        using (StreamReader reader = new(ctx.Request.Body)) {
+            link = await reader.ReadToEndAsync();
+        }
+        if (!Uri.IsWellFormedUriString(link, UriKind.Absolute))
+            return Results.BadRequest("Invalid URI.");
+        await Draft.SaveArt(Path.Join(dir, "art.jpg"), await new HttpClient().GetStreamAsync(link));
+    }
+    else {
+        await Draft.SaveArt(Path.Join(dir, "art.jpg"), ctx.Request.Body);
+    }
     return Results.NoContent();
 }).WithOpenApi();
 

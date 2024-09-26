@@ -57,6 +57,12 @@ Content-Type: image/jpeg
 
 < D:/Downloads/a3621933057_0.jpg
 ###
+PUT {{Base}}/draft/1/art
+Authorization: Bearer {{Token}}
+Content-Type: text/plain
+
+https://f4.bcbits.com/img/a2999483571_0.png
+###
 GET {{Base}}/draft/1/files
 Authorization: Bearer {{Token}}
 ###
