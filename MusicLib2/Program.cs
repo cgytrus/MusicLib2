@@ -68,7 +68,7 @@ baseGroup.MapGet("/playlists", () => Results.Json(Track.AllPlaylists())).WithOpe
 baseGroup.MapGet("/playlist/{fileName}", (string fileName) => {
     if (fileName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
         return Results.BadRequest("Filename contains invalid character.");
-    string path = Path.Join(Paths.musicDir, fileName);
+    string path = Path.Join(Paths.music, fileName);
     return !File.Exists(path) ? Results.NotFound("Playlist not found.") : Results.Json(Track.AllFromPlaylist(path));
 }).WithOpenApi();
 

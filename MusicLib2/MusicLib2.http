@@ -36,6 +36,9 @@ Authorization: Bearer {{Token}}
 PUT {{Base}}/draft/{{DraftId}}/meta
 Authorization: Bearer {{Token}}
 ###
+PUT {{Base}}/draft/{{DraftId}}/art
+Authorization: Bearer {{Token}}
+###
 POST {{Base}}/draft/{{DraftId}}/file/{{FileLink}}
 Authorization: Bearer {{Token}}
 ###

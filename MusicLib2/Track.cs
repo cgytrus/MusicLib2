@@ -43,7 +43,7 @@ public record struct Track(
 
     public static IEnumerable<Track> AllTracks(bool authorized) {
         Extras extras = Extras.Read();
-        return from path in Directory.EnumerateFiles(Paths.musicDir)
+        return from path in Directory.EnumerateFiles(Paths.music)
             where Path.GetExtension(path) is ".mp3" or ".opus" or ".ogg" or ".m4a" or ".flac" or ".wav"
             let track = FromFile(path, extras)
             where authorized || !string.IsNullOrEmpty(track.artist)
@@ -51,7 +51,7 @@ public record struct Track(
     }
 
     public static IEnumerable<string> AllPlaylists() {
-        return from path in Directory.EnumerateFiles(Paths.musicDir)
+        return from path in Directory.EnumerateFiles(Paths.music)
             where Path.GetExtension(path) is ".m3u" or ".m3u8"
             select Path.GetFileName(path);
     }
@@ -60,7 +60,7 @@ public record struct Track(
         Extras extras = Extras.Read();
         return from line in File.ReadLines(path)
             where !line.StartsWith('#')
-            let trackPath = Path.Join(Paths.musicDir, line)
+            let trackPath = Path.Join(Paths.music, line)
             where File.Exists(trackPath)
             select FromFile(trackPath, extras);
     }
