@@ -188,7 +188,11 @@ draftGroup.MapGet("/{draftId}/files", async (HttpContext ctx, uint draftId) => {
     string filesPath = Path.Join(dir, "files.json");
     if (!File.Exists(filesPath))
         return Results.NotFound("Draft files does not exist?");
-    return Results.Text(await File.ReadAllTextAsync(filesPath), "application/json");
+    Dictionary<uint, Draft.File> files;
+    await using (FileStream filesFile = File.OpenRead(filesPath)) {
+        files = await JsonSerializer.DeserializeAsync(filesFile, SourceGenerationContext.Default.DictionaryUInt32File) ?? [];
+    }
+    return Results.Json(files.Keys);
 }).WithOpenApi();
 
 draftGroup.MapPost("/{draftId}/file", async (HttpContext ctx, uint draftId) => {
@@ -243,33 +247,13 @@ draftGroup.MapGet("/{draftId}/file/{fileId}", async (HttpContext ctx, uint draft
     if (!files.TryGetValue(fileId, out Draft.File file))
         return Results.NotFound("Draft file does not exist.");
 
-    switch (file.status) {
-        case Draft.File.Status.Downloading:
-            return DownloadingFile.TryGet(fileId, out DownloadingFile? dl) ?
-                Results.Json(new Draft.File.DownloadingDto(file.link, file.status, dl.progress),
-                    SourceGenerationContext.Default.DownloadingDto) :
-                Results.NotFound("Downloading file does not exist.");
-        case Draft.File.Status.Ready:
-            string filePath = Path.Join(dir, file.filename);
-            long size = new FileInfo(filePath).Length;
-            IMediaAnalysis analysis = await FFProbe.AnalyseAsync(filePath);
-            if (analysis.PrimaryAudioStream is null)
-                return Results.Problem($"{nameof(analysis.PrimaryAudioStream)} is null", null, 500,
-                    "Audio analysis failed.");
-
-            return Results.Json(new Draft.File.ReadyDto {
-                link = file.link,
-                status = file.status,
-                format = analysis.Format.FormatName,
-                codec = analysis.PrimaryAudioStream.CodecName,
-                size = size,
-                duration = analysis.Duration,
-                sampleRate = analysis.PrimaryAudioStream.SampleRateHz,
-                bitrate = (uint)analysis.Format.BitRate
-            }, SourceGenerationContext.Default.ReadyDto);
-        default:
-            return Results.Problem(file.status.ToString(), null, 500, "Unknown file status.");
-    }
+    return file.status switch {
+        Draft.File.Status.Downloading => DownloadingFile.TryGet(fileId, out DownloadingFile? dl) ?
+            Results.Json(new Draft.File.DownloadingDto(file.link, file.status, dl.progress),
+                SourceGenerationContext.Default.DownloadingDto) : Results.NotFound("Downloading file does not exist."),
+        Draft.File.Status.Ready => Results.Json(await file.AnalyzeAsync(dir), SourceGenerationContext.Default.ReadyDto),
+        _ => Results.Problem(file.status.ToString(), null, 500, "Unknown file status.")
+    };
 }).WithOpenApi();
 
 draftGroup.MapGet("/{draftId}/file/{fileId}/spectrogram", async (HttpContext ctx, uint draftId, uint fileId) => {

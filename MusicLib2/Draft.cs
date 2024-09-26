@@ -1,4 +1,6 @@
-﻿using System.Text.Json;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
+using FFMpegCore;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Processing;
@@ -61,6 +63,22 @@ public record struct Draft(
                     System.IO.File.Delete(spectrogramPath);
             }
             catch { /* ignored */ }
+        }
+
+        public async Task<ReadyDto> AnalyzeAsync(string dir) {
+            string filePath = Path.Join(dir, filename);
+            long size = new FileInfo(filePath).Length;
+            IMediaAnalysis analysis = await FFProbe.AnalyseAsync(filePath);
+            return new ReadyDto {
+                link = link,
+                status = status,
+                format = analysis.Format.FormatName,
+                codec = analysis.PrimaryAudioStream?.CodecName ?? "",
+                size = size,
+                duration = analysis.Duration,
+                sampleRate = analysis.PrimaryAudioStream?.SampleRateHz ?? 0,
+                bitrate = (uint)analysis.Format.BitRate
+            };
         }
     }
 
