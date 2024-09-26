@@ -1,6 +1,9 @@
-﻿namespace MusicLib2;
+﻿using System.Collections.Immutable;
+using System.Text.RegularExpressions;
 
-public record struct Track(
+namespace MusicLib2;
+
+public partial record struct Track(
     string title,
     string artist,
     string? album,
@@ -12,7 +15,7 @@ public record struct Track(
     uint discCount,
     IReadOnlyCollection<string> links
 ) {
-    public static Track FromFile(string path, Extras extras) {
+    public static Track FromFile(string path) {
         Track track;
         try {
             using TagLib.File file = TagLib.File.Create(path);
@@ -28,6 +31,18 @@ public record struct Track(
                 discCount = file.Tag.DiscCount,
                 links = []
             };
+
+            List<string> links = [];
+            string[] lines = NewLineRegex().Split(file.Tag.Comment);
+            foreach (string line in lines) {
+                string link = line;
+                // bandcamp link
+                if (line.StartsWith("Visit ") && line.Length > 6)
+                    link = line[6..];
+                if (Uri.IsWellFormedUriString(link, UriKind.Absolute))
+                    links.Add(link);
+            }
+            track.links = links.Distinct().ToImmutableArray();
         }
         catch {
             track = new Track {
@@ -36,16 +51,13 @@ public record struct Track(
                 links = []
             };
         }
-        if (extras.links is not null && extras.links.TryGetValue(Path.GetFileName(path), out List<string>? links))
-            track.links = links;
         return track;
     }
 
     public static IEnumerable<Track> AllTracks(bool authorized) {
-        Extras extras = Extras.Read();
         return from path in Directory.EnumerateFiles(Paths.music)
             where Path.GetExtension(path) is ".mp3" or ".opus" or ".ogg" or ".m4a" or ".flac" or ".wav"
-            let track = FromFile(path, extras)
+            let track = FromFile(path)
             where authorized || !string.IsNullOrEmpty(track.artist)
             select track;
     }
@@ -57,11 +69,13 @@ public record struct Track(
     }
 
     public static IEnumerable<Track> AllFromPlaylist(string path) {
-        Extras extras = Extras.Read();
         return from line in File.ReadLines(path)
             where !line.StartsWith('#')
             let trackPath = Path.Join(Paths.music, line)
             where File.Exists(trackPath)
-            select FromFile(trackPath, extras);
+            select FromFile(trackPath);
     }
+
+    [GeneratedRegex("\r\n|\r|\n")]
+    private static partial Regex NewLineRegex();
 }

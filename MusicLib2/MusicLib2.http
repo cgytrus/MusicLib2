@@ -30,13 +30,16 @@ Authorization: Bearer {{Token}}
 POST {{Base}}/draft
 Authorization: Bearer {{Token}}
 ###
-GET {{Base}}/draft/{{DraftId}}
+GET {{Base}}/draft/{{DraftId}}/meta
 Authorization: Bearer {{Token}}
 ###
 PUT {{Base}}/draft/{{DraftId}}/meta
 Authorization: Bearer {{Token}}
 ###
 PUT {{Base}}/draft/{{DraftId}}/art
+Authorization: Bearer {{Token}}
+###
+GET {{Base}}/draft/{{DraftId}}/files
 Authorization: Bearer {{Token}}
 ###
 POST {{Base}}/draft/{{DraftId}}/file/{{FileLink}}
@@ -59,7 +62,8 @@ Authorization: Bearer {{Token}}
 
 ###
 
-DELETE {{Base}}/cache
-Authorization: Bearer {{Token}}
+# TODO: caching
+#DELETE {{Base}}/cache
+#Authorization: Bearer {{Token}}
 
 ###
