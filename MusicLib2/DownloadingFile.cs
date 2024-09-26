@@ -68,7 +68,6 @@ public class DownloadingFile : IProgress<DownloadProgress> {
             progress = value;
             return;
         }
-        downloadingFiles.Remove(_id);
         if (!Directory.Exists(_dir)) {
             progress = new DownloadProgress(DownloadState.Error, data: "Draft does not exist.");
             return;
@@ -112,6 +111,7 @@ public class DownloadingFile : IProgress<DownloadProgress> {
             }
 
             progress = value;
+            downloadingFiles.Remove(_id);
         }
         catch (Exception ex) {
             progress = new DownloadProgress(DownloadState.Error, data: ex.ToString());
