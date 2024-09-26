@@ -69,14 +69,28 @@ baseGroup.MapGet("/tracks", (HttpContext ctx) => Results.Json(Track.AllTracks(Tr
 
 baseGroup.MapGet("/playlists", () => Results.Json(Track.AllPlaylists())).WithOpenApi();
 
-baseGroup.MapGet("/playlist/{fileName}", (string fileName) => {
+baseGroup.MapGet("/playlist/{fileName}", (HttpContext ctx, string fileName) => {
     if (fileName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
         return Results.BadRequest("Filename contains invalid character.");
     string path = Path.Join(Paths.music, fileName);
-    return !File.Exists(path) ? Results.NotFound("Playlist not found.") : Results.Json(Track.AllFromPlaylist(path));
+    return !File.Exists(path) ?
+        Results.NotFound("Playlist not found.") :
+        Results.Json(Track.AllFromPlaylist(path, TryAuthorize(ctx)));
 }).WithOpenApi();
 
 RouteGroupBuilder draftGroup = baseGroup.MapGroup("/draft");
+
+baseGroup.MapGet("/drafts", (HttpContext ctx) => {
+    if (!TryAuthorize(ctx))
+        return Results.Unauthorized();
+    List<uint> drafts = [];
+    foreach (string path in Directory.EnumerateDirectories(Paths.drafts)) {
+        string name = Path.GetFileName(path);
+        if (uint.TryParse(name, out uint id))
+            drafts.Add(id);
+    }
+    return Results.Json(drafts);
+}).WithOpenApi();
 
 draftGroup.MapPost("/", async (HttpContext ctx) => {
     if (!TryAuthorize(ctx))
@@ -136,7 +150,7 @@ draftGroup.MapPut("/{draftId}/meta", async (HttpContext ctx, uint draftId) => {
     catch (JsonException ex) {
         return Results.BadRequest($"Input JSON data invalid. {ex.Message}");
     }
-    await using (FileStream file = File.OpenWrite(meta)) {
+    await using (FileStream file = File.Create(meta)) {
         await JsonSerializer.SerializeAsync(file, draft, SourceGenerationContext.Default.Draft);
     }
     return Results.NoContent();
@@ -164,7 +178,7 @@ draftGroup.MapGet("/{draftId}/files", async (HttpContext ctx, uint draftId) => {
     return Results.Text(await File.ReadAllTextAsync(filesPath), "application/json");
 }).WithOpenApi();
 
-draftGroup.MapPost("/{draftId}/file/{link}", async (HttpContext ctx, uint draftId, string link) => {
+draftGroup.MapPost("/{draftId}/file", async (HttpContext ctx, uint draftId) => {
     if (!TryAuthorize(ctx))
         return Results.Unauthorized();
     string dir = Path.Join(Paths.drafts, draftId.ToString());
@@ -173,6 +187,10 @@ draftGroup.MapPost("/{draftId}/file/{link}", async (HttpContext ctx, uint draftI
     string filesPath = Path.Join(dir, "files.json");
     if (!File.Exists(filesPath))
         return Results.NotFound("Draft files does not exist?");
+    string link;
+    using (StreamReader reader = new(ctx.Request.Body)) {
+        link = await reader.ReadToEndAsync();
+    }
     if (!Uri.IsWellFormedUriString(link, UriKind.Absolute))
         return Results.BadRequest("Invalid URI.");
 
@@ -181,10 +199,10 @@ draftGroup.MapPost("/{draftId}/file/{link}", async (HttpContext ctx, uint draftI
         files = await JsonSerializer.DeserializeAsync(file, SourceGenerationContext.Default.DictionaryUInt32File) ?? [];
     }
 
-    uint fileId = files.Keys.Max() + 1;
+    uint fileId = files.Count == 0 ? 1 : files.Keys.Max() + 1;
     files[fileId] = new Draft.File(link, Draft.File.Status.Downloading, "");
 
-    await using (FileStream file = File.OpenWrite(filesPath)) {
+    await using (FileStream file = File.Create(filesPath)) {
         await JsonSerializer.SerializeAsync(file, files, SourceGenerationContext.Default.DictionaryUInt32File);
     }
 
@@ -215,7 +233,8 @@ draftGroup.MapGet("/{draftId}/file/{fileId}", async (HttpContext ctx, uint draft
     switch (file.status) {
         case Draft.File.Status.Downloading:
             return DownloadingFile.TryGet(fileId, out DownloadingFile? dl) ?
-                Results.Json(new Draft.File.DownloadingDto(file.link, file.status, dl.progress)) :
+                Results.Json(new Draft.File.DownloadingDto(file.link, file.status, dl.progress),
+                    SourceGenerationContext.Default.DownloadingDto) :
                 Results.NotFound("Downloading file does not exist.");
         case Draft.File.Status.Ready:
             string filePath = Path.Join(dir, file.filename);
@@ -225,15 +244,14 @@ draftGroup.MapGet("/{draftId}/file/{fileId}", async (HttpContext ctx, uint draft
                 return Results.Problem($"{nameof(analysis.PrimaryAudioStream)} is null", null, 500,
                     "Audio analysis failed.");
 
-            AudioStream audio = analysis.PrimaryAudioStream;
             return Results.Json(new Draft.File.ReadyDto {
                 link = file.link,
                 status = file.status,
                 size = size,
-                duration = audio.Duration,
-                sampleRate = audio.SampleRateHz,
-                bitrate = audio.BitRate
-            });
+                duration = analysis.Duration,
+                sampleRate = analysis.PrimaryAudioStream.SampleRateHz,
+                bitrate = (uint)analysis.Format.BitRate
+            }, SourceGenerationContext.Default.ReadyDto);
         default:
             return Results.Problem(file.status.ToString(), null, 500, "Unknown file status.");
     }
@@ -306,7 +324,7 @@ draftGroup.MapDelete("/{draftId}/file/{fileId}", async (HttpContext ctx, uint dr
     catch { /* ignored */ }
 
     files.Remove(fileId);
-    await using (FileStream filesFile = File.OpenWrite(filesPath)) {
+    await using (FileStream filesFile = File.Create(filesPath)) {
         await JsonSerializer.SerializeAsync(filesFile, files, SourceGenerationContext.Default.DictionaryUInt32File);
     }
     return Results.NoContent();
@@ -361,8 +379,8 @@ draftGroup.MapPost("/{draftId}/finalize/{fileId}", async (HttpContext ctx, uint 
         string links = string.Join('\n', draft.links);
         tags.Tag.Title = draft.title;
         tags.Tag.Performers = [draft.artist];
-        tags.Tag.Album = draft.album;
-        tags.Tag.AlbumArtists = [draft.albumArtist];
+        tags.Tag.Album = draft.album ?? draft.title;
+        tags.Tag.AlbumArtists = [draft.albumArtist ?? draft.artist];
         tags.Tag.Year = draft.year;
         tags.Tag.Pictures = [new Picture(artPath)];
         tags.Tag.Track = draft.trackNumber;

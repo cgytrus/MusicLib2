@@ -64,7 +64,7 @@ public class DownloadingFile : IProgress<DownloadProgress> {
     }
 
     public void Report(DownloadProgress value) {
-        if (progress.State != DownloadState.Success) {
+        if (value.State != DownloadState.Success) {
             progress = value;
             return;
         }
@@ -94,14 +94,6 @@ public class DownloadingFile : IProgress<DownloadProgress> {
             string path = Path.Join(_dir, fileName);
             File.Move(value.Data, path);
 
-            file.status = Draft.File.Status.Ready;
-            file.filename = fileName;
-            files[_id] = file;
-
-            using (FileStream metaFile = File.OpenWrite(filesPath)) {
-                JsonSerializer.Serialize(metaFile, files, SourceGenerationContext.Default.DictionaryUInt32File);
-            }
-
             string spectrogramPath = Path.ChangeExtension(path, ".png");
             FFMpegArguments
                 .FromFileInput(path)
@@ -110,6 +102,14 @@ public class DownloadingFile : IProgress<DownloadProgress> {
                 .ProcessSynchronously(true, new FFOptions {
                     WorkingDirectory = _dir
                 });
+
+            file.status = Draft.File.Status.Ready;
+            file.filename = fileName;
+            files[_id] = file;
+
+            using (FileStream metaFile = File.Create(filesPath)) {
+                JsonSerializer.Serialize(metaFile, files, SourceGenerationContext.Default.DictionaryUInt32File);
+            }
 
             progress = value;
         }

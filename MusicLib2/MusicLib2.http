@@ -3,9 +3,6 @@
 
 @PlaylistFilename = save..m3u8
 @Token = Br3eLY1DfgaQxZDeTIYZVA
-@DraftId = 1
-@FileLink = https%3A%2F%2Fsoundcloud.com%2Fcoltranecore%2Fzeke-didnt-invent-dariacore-i-did
-@FileId = 1
 
 ###
 
@@ -15,6 +12,9 @@ Authorization: Bearer {{Token}}
 ###
 
 GET {{Base}}/tracks
+###
+GET {{Base}}/tracks
+Authorization: Bearer {{Token}}
 
 ###
 
@@ -30,34 +30,65 @@ Authorization: Bearer {{Token}}
 POST {{Base}}/draft
 Authorization: Bearer {{Token}}
 ###
-GET {{Base}}/draft/{{DraftId}}/meta
+GET {{Base}}/draft/1/meta
 Authorization: Bearer {{Token}}
 ###
-PUT {{Base}}/draft/{{DraftId}}/meta
+PUT {{Base}}/draft/1/meta
+Authorization: Bearer {{Token}}
+
+{
+    "title": "a",
+    "artist": "b",
+    "album": "c",
+    "year": 2069,
+    "trackNumber": 1,
+    "trackCount": 1,
+    "discNumber": 1,
+    "discCount": 1,
+    "links": [
+        "https://soundcloud.com/furtrash/scene-kweenz",
+        "https://youtu.be/aTmlhlXR-oE"
+    ]
+}
+###
+PUT {{Base}}/draft/1/art
+Authorization: Bearer {{Token}}
+Content-Type: image/jpeg
+
+< D:/Downloads/a3621933057_0.jpg
+###
+GET {{Base}}/draft/1/files
 Authorization: Bearer {{Token}}
 ###
-PUT {{Base}}/draft/{{DraftId}}/art
+POST {{Base}}/draft/1/file
+Authorization: Bearer {{Token}}
+
+https://soundcloud.com/furtrash/scene-kweenz
+###
+GET {{Base}}/draft/1/file/1
 Authorization: Bearer {{Token}}
 ###
-GET {{Base}}/draft/{{DraftId}}/files
+GET {{Base}}/draft/1/file/1/spectrogram
 Authorization: Bearer {{Token}}
 ###
-POST {{Base}}/draft/{{DraftId}}/file/{{FileLink}}
+POST {{Base}}/draft/1/file
+Authorization: Bearer {{Token}}
+
+https://youtu.be/aTmlhlXR-oE
+###
+GET {{Base}}/draft/1/file/2
 Authorization: Bearer {{Token}}
 ###
-GET {{Base}}/draft/{{DraftId}}/file/{{FileId}}
+GET {{Base}}/draft/1/file/2/spectrogram
 Authorization: Bearer {{Token}}
 ###
-GET {{Base}}/draft/{{DraftId}}/file/{{FileId}}/spectrogram
+DELETE {{Base}}/draft/1/file/1
 Authorization: Bearer {{Token}}
 ###
-DELETE {{Base}}/draft/{{DraftId}}/file/{{FileId}}
+POST {{Base}}/draft/1/finalize/2
 Authorization: Bearer {{Token}}
 ###
-POST {{Base}}/draft/{{DraftId}}/finalize/{{FileId}}
-Authorization: Bearer {{Token}}
-###
-DELETE {{Base}}/draft/{{DraftId}}
+DELETE {{Base}}/draft/1
 Authorization: Bearer {{Token}}
 
 ###

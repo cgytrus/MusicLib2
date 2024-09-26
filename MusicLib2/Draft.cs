@@ -35,7 +35,7 @@ public record struct Draft(
             long size, // bytes
             TimeSpan duration, // seconds
             int sampleRate, // Hz
-            long bitrate // bps
+            uint bitrate // bps
         );
 
         public async Task CancelAndDeleteAsync(string dir, uint id) {

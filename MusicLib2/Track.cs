@@ -29,25 +29,15 @@ public partial record struct Track(
                 trackCount = file.Tag.TrackCount,
                 discNumber = file.Tag.Disc,
                 discCount = file.Tag.DiscCount,
-                links = []
+                links = string.IsNullOrWhiteSpace(file.Tag.Comment) ? [] : NewLineRegex().Split(file.Tag.Comment)
+                    .Where(line => Uri.IsWellFormedUriString(line, UriKind.Absolute)).Distinct().ToImmutableArray()
             };
-
-            List<string> links = [];
-            string[] lines = NewLineRegex().Split(file.Tag.Comment);
-            foreach (string line in lines) {
-                string link = line;
-                // bandcamp link
-                if (line.StartsWith("Visit ") && line.Length > 6)
-                    link = line[6..];
-                if (Uri.IsWellFormedUriString(link, UriKind.Absolute))
-                    links.Add(link);
-            }
-            track.links = links.Distinct().ToImmutableArray();
         }
-        catch {
+        catch (Exception ex) {
             track = new Track {
                 title = Path.GetFileName(path),
                 artist = "",
+                album = ex.ToString(),
                 links = []
             };
         }
@@ -68,12 +58,14 @@ public partial record struct Track(
             select Path.GetFileName(path);
     }
 
-    public static IEnumerable<Track> AllFromPlaylist(string path) {
+    public static IEnumerable<Track> AllFromPlaylist(string path, bool authorized) {
         return from line in File.ReadLines(path)
             where !line.StartsWith('#')
             let trackPath = Path.Join(Paths.music, line)
             where File.Exists(trackPath)
-            select FromFile(trackPath);
+            let track = FromFile(trackPath)
+            where authorized || !string.IsNullOrEmpty(track.artist)
+            select track;
     }
 
     [GeneratedRegex("\r\n|\r|\n")]
