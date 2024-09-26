@@ -247,6 +247,8 @@ draftGroup.MapGet("/{draftId}/file/{fileId}", async (HttpContext ctx, uint draft
             return Results.Json(new Draft.File.ReadyDto {
                 link = file.link,
                 status = file.status,
+                format = analysis.Format.FormatName,
+                codec = analysis.PrimaryAudioStream.CodecName,
                 size = size,
                 duration = analysis.Duration,
                 sampleRate = analysis.PrimaryAudioStream.SampleRateHz,

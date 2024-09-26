@@ -32,6 +32,8 @@ public record struct Draft(
         public readonly record struct ReadyDto(
             string link,
             Status status,
+            string format,
+            string codec,
             long size, // bytes
             TimeSpan duration, // seconds
             int sampleRate, // Hz
