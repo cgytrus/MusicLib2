@@ -32,6 +32,8 @@ public partial record struct Track(
                 links = string.IsNullOrWhiteSpace(file.Tag.Comment) ? [] : NewLineRegex().Split(file.Tag.Comment)
                     .Where(line => Uri.IsWellFormedUriString(line, UriKind.Absolute)).Distinct().ToImmutableArray()
             };
+            if (string.IsNullOrEmpty(track.title))
+                track.title = Path.GetFileName(path);
         }
         catch (Exception ex) {
             track = new Track {
