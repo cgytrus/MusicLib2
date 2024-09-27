@@ -216,6 +216,9 @@ draftGroup.MapPost("/{draftId}/file", async (HttpContext ctx, uint draftId) => {
         files = await JsonSerializer.DeserializeAsync(file, SourceGenerationContext.Default.DictionaryUInt32File) ?? [];
     }
 
+    if (files.Values.Any(x => x.link == link))
+        return Results.BadRequest("File with this link already added.");
+
     uint fileId = files.Count == 0 ? 1 : files.Keys.Max() + 1;
     files[fileId] = new Draft.File(link, Draft.File.Status.Downloading, "");
 
