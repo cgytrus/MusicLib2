@@ -7,8 +7,7 @@ namespace MusicLib2;
     Converters = [typeof(CamelCaseJsonStringEnumConverter)],
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase
 )]
-[JsonSerializable(typeof(IEnumerable<Track>))]
-[JsonSerializable(typeof(IDictionary<int, Playlist>))]
+[JsonSerializable(typeof(Library))]
 [JsonSerializable(typeof(List<uint>))]
 [JsonSerializable(typeof(Dictionary<uint, Draft.File>.KeyCollection))]
 [JsonSerializable(typeof(Draft.File.DownloadingDto))]

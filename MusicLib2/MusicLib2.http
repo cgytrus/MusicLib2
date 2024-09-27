@@ -11,16 +11,9 @@ Authorization: Bearer {{Token}}
 
 ###
 
-GET {{Base}}/tracks
+GET {{Base}}/library
 ###
-GET {{Base}}/tracks
-Authorization: Bearer {{Token}}
-
-###
-
-GET {{Base}}/playlists
-###
-GET {{Base}}/playlists
+GET {{Base}}/library
 Authorization: Bearer {{Token}}
 
 ###

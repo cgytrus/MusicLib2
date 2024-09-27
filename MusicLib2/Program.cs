@@ -65,13 +65,8 @@ baseGroup.MapGet("/auth", (HttpContext ctx) => {
     return !TryAuthorize(ctx) ? Results.Text("Invalid token") : Results.Text("");
 }).WithOpenApi();
 
-baseGroup.MapGet("/tracks", (HttpContext ctx) => {
-    return Results.Json(Track.All(TryAuthorize(ctx)), SourceGenerationContext.Default.IEnumerableTrack);
-}).WithOpenApi();
-
-baseGroup.MapGet("/playlists", async (HttpContext ctx) => {
-    return Results.Json(await Playlist.All(TryAuthorize(ctx)),
-        SourceGenerationContext.Default.IDictionaryInt32Playlist);
+baseGroup.MapGet("/library", async (HttpContext ctx) => {
+    return Results.Json(await Library.Get(TryAuthorize(ctx)), SourceGenerationContext.Default.Library);
 }).WithOpenApi();
 
 RouteGroupBuilder draftGroup = baseGroup.MapGroup("/draft");

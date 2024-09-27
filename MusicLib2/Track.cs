@@ -15,7 +15,7 @@ public partial record struct Track(
     uint discCount,
     IReadOnlyCollection<string> links
 ) {
-    public static Track FromFile(string path) {
+    private static Track FromFile(string path) {
         Track track;
         try {
             using TagLib.File file = TagLib.File.Create(path);
@@ -46,12 +46,23 @@ public partial record struct Track(
         return track;
     }
 
-    public static IEnumerable<Track> All(bool authorized) {
-        return from path in Directory.EnumerateFiles(Paths.music)
-            where Path.GetExtension(path) is ".mp3" or ".opus" or ".ogg" or ".m4a" or ".flac" or ".wav"
-            let track = FromFile(path)
-            where authorized || !string.IsNullOrEmpty(track.artist)
-            select track;
+    private static readonly HashSet<string> allowedExtensions = [
+        ".mp3",
+        ".opus",
+        ".ogg",
+        ".m4a",
+        ".flac",
+        ".wav"
+    ];
+
+    public static IReadOnlyDictionary<string, Track> All() {
+        Dictionary<string, Track> tracks = [];
+        foreach (string path in Directory.EnumerateFiles(Paths.music)) {
+            if (!allowedExtensions.Contains(Path.GetExtension(path)))
+                continue;
+            tracks.Add(Path.GetFileName(path), FromFile(path));
+        }
+        return tracks;
     }
 
     [GeneratedRegex("\r\n|\r|\n")]
