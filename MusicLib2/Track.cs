@@ -46,26 +46,10 @@ public partial record struct Track(
         return track;
     }
 
-    public static IEnumerable<Track> AllTracks(bool authorized) {
+    public static IEnumerable<Track> All(bool authorized) {
         return from path in Directory.EnumerateFiles(Paths.music)
             where Path.GetExtension(path) is ".mp3" or ".opus" or ".ogg" or ".m4a" or ".flac" or ".wav"
             let track = FromFile(path)
-            where authorized || !string.IsNullOrEmpty(track.artist)
-            select track;
-    }
-
-    public static IEnumerable<string> AllPlaylists() {
-        return from path in Directory.EnumerateFiles(Paths.music)
-            where Path.GetExtension(path) is ".m3u" or ".m3u8"
-            select Path.GetFileName(path);
-    }
-
-    public static IEnumerable<Track> AllFromPlaylist(string path, bool authorized) {
-        return from line in File.ReadLines(path)
-            where !line.StartsWith('#')
-            let trackPath = Path.Join(Paths.music, line)
-            where File.Exists(trackPath)
-            let track = FromFile(trackPath)
             where authorized || !string.IsNullOrEmpty(track.artist)
             select track;
     }

@@ -65,17 +65,13 @@ baseGroup.MapGet("/auth", (HttpContext ctx) => {
     return !TryAuthorize(ctx) ? Results.Text("Invalid token") : Results.Text("");
 }).WithOpenApi();
 
-baseGroup.MapGet("/tracks", (HttpContext ctx) => Results.Json(Track.AllTracks(TryAuthorize(ctx)))).WithOpenApi();
+baseGroup.MapGet("/tracks", (HttpContext ctx) => {
+    return Results.Json(Track.All(TryAuthorize(ctx)), SourceGenerationContext.Default.IEnumerableTrack);
+}).WithOpenApi();
 
-baseGroup.MapGet("/playlists", () => Results.Json(Track.AllPlaylists())).WithOpenApi();
-
-baseGroup.MapGet("/playlist/{fileName}", (HttpContext ctx, string fileName) => {
-    if (fileName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
-        return Results.BadRequest("Filename contains invalid character.");
-    string path = Path.Join(Paths.music, fileName);
-    return !File.Exists(path) ?
-        Results.NotFound("Playlist not found.") :
-        Results.Json(Track.AllFromPlaylist(path, TryAuthorize(ctx)));
+baseGroup.MapGet("/playlists", async (HttpContext ctx) => {
+    return Results.Json(await Playlist.All(TryAuthorize(ctx)),
+        SourceGenerationContext.Default.IDictionaryInt32Playlist);
 }).WithOpenApi();
 
 RouteGroupBuilder draftGroup = baseGroup.MapGroup("/draft");
@@ -89,7 +85,7 @@ baseGroup.MapGet("/drafts", (HttpContext ctx) => {
         if (uint.TryParse(name, out uint id))
             drafts.Add(id);
     }
-    return Results.Json(drafts);
+    return Results.Json(drafts, SourceGenerationContext.Default.ListUInt32);
 }).WithOpenApi();
 
 draftGroup.MapPost("/", async (HttpContext ctx) => {
@@ -192,7 +188,7 @@ draftGroup.MapGet("/{draftId}/files", async (HttpContext ctx, uint draftId) => {
     await using (FileStream filesFile = File.OpenRead(filesPath)) {
         files = await JsonSerializer.DeserializeAsync(filesFile, SourceGenerationContext.Default.DictionaryUInt32File) ?? [];
     }
-    return Results.Json(files.Keys);
+    return Results.Json(files.Keys, SourceGenerationContext.Default.KeyCollectionUInt32File);
 }).WithOpenApi();
 
 draftGroup.MapPost("/{draftId}/file", async (HttpContext ctx, uint draftId) => {

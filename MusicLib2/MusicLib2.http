@@ -20,7 +20,8 @@ Authorization: Bearer {{Token}}
 
 GET {{Base}}/playlists
 ###
-GET {{Base}}/playlist/{{PlaylistFilename}}
+GET {{Base}}/playlists
+Authorization: Bearer {{Token}}
 
 ###
 
