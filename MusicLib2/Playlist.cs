@@ -59,7 +59,7 @@ public partial record struct Playlist(
                 paths.Append(line);
                 continue;
             }
-            string fileName = Path.GetFileName(uri.LocalPath);
+            string fileName = uri.LocalPath.Split('\\').LastOrDefault("");
             if (!allTracks.TryGet(fileName, out Track track)) {
                 hasUnrecognized = true;
                 track.title = uri.LocalPath;
