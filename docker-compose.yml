@@ -8,6 +8,6 @@
     - "8080:8080"
     - "8081:8081"
     environment:
-      ML2_PATH: "~/MusicLib2"
+      ML2_PATH: "/music"
     volumes:
     - ~/music:/music
