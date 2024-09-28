@@ -9,7 +9,6 @@
     - "8081:8081"
     environment:
       ML2_PATH: "~/MusicLib2"
-      ML2_MUSIC_PATH: "/music/music"
-      ML2_FB2K_PATH: "/music/foobar2000"
+      ML2_READ_PATH: "/music"
     volumes:
     - ~/music:/music
