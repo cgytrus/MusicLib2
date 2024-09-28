@@ -466,9 +466,9 @@ baseGroup.MapPost("/import", async (HttpContext ctx) => {
         try {
             tags.Tag.Comment = string.IsNullOrWhiteSpace(tags.Tag.Comment) ? links : $"{tags.Tag.Comment}\n{links}";
 
-            DateTime time = File.GetLastWriteTime(filePath);
+            //DateTime time = File.GetLastWriteTime(filePath);
             tags.Save();
-            File.SetLastWriteTime(filePath, time);
+            //File.SetLastWriteTime(filePath, time);
         }
         catch (Exception ex) {
             messages.Add(ex.ToString());
