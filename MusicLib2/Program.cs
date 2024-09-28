@@ -1,6 +1,5 @@
 using System.Runtime.InteropServices;
 using System.Text.Json;
-using FFMpegCore;
 using MusicLib2;
 using TagLib;
 using YoutubeDLSharp;
