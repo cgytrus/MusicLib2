@@ -295,26 +295,7 @@ draftGroup.MapDelete("/{draftId}/file/{fileId}", async (HttpContext ctx, uint dr
     if (!files.TryGetValue(fileId, out Draft.File file))
         return Results.NotFound("Draft file does not exist.");
 
-    if (file.status == Draft.File.Status.Downloading && DownloadingFile.TryGet(fileId, out DownloadingFile? dl)) {
-        await dl.CancelAsync();
-    }
-
-    if (string.IsNullOrWhiteSpace(file.filename))
-        return Results.NoContent();
-
-    string filePath = Path.Join(dir, file.filename);
-    try {
-        if (File.Exists(filePath))
-            File.Delete(filePath);
-    }
-    catch { /* ignored */ }
-
-    string spectrogramPath = Path.ChangeExtension(filePath, ".png");
-    try {
-        if (File.Exists(spectrogramPath))
-            File.Delete(spectrogramPath);
-    }
-    catch { /* ignored */ }
+    await file.CancelAndDeleteAsync(dir, fileId);
 
     files.Remove(fileId);
     await using (FileStream filesFile = File.Create(filesPath)) {
