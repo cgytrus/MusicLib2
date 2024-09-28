@@ -12,3 +12,4 @@
       ML2_READ_PATH: "/music"
     volumes:
     - ~/music:/music
+    restart: unless-stopped
