@@ -6,13 +6,11 @@ public static class Paths {
     public static readonly string baseDir = Environment.GetEnvironmentVariable("ML2_PATH") ??
         Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MusicLib2");
 
-    public static readonly string music = Environment.GetEnvironmentVariable("ML2_PATH") is null ?
-        Environment.GetFolderPath(Environment.SpecialFolder.MyMusic) :
-        Path.Join(baseDir, "music");
+    public static readonly string music = Environment.GetEnvironmentVariable("ML2_MUSIC_PATH") ??
+        Environment.GetFolderPath(Environment.SpecialFolder.MyMusic);
 
-    public static readonly string foobar2000Playlists = Environment.GetEnvironmentVariable("ML2_PATH") is null ?
-        Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "foobar2000-v2", "playlists-v2.0") :
-        Path.Join(baseDir, "foobar2000");
+    public static readonly string foobar2000Playlists = Environment.GetEnvironmentVariable("ML2_FB2K_PATH") ??
+        Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "foobar2000-v2", "playlists-v2.0");
 
     public static readonly string drafts = Path.Join(baseDir, "drafts");
 
