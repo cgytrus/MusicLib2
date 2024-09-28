@@ -9,3 +9,5 @@
     - "8081:8081"
     environment:
       ML2_PATH: "~/MusicLib2"
+    volumes:
+    - ~/music:~/MusicLib2/music
