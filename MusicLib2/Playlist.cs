@@ -13,8 +13,7 @@ public partial record struct Playlist(
 ) {
     public enum Type { File, Foobar2000, Poweramp }
 
-    private static async Task<Playlist> FromFile(IReadOnlyDictionary<string, Track> allTracks, string path,
-        bool authorized) {
+    private static async Task<Playlist> FromFile(Tracks allTracks, string path, bool authorized) {
         bool hasUnrecognized = false;
         List<Track> tracks = [];
         StringBuilder paths = new();
@@ -22,13 +21,10 @@ public partial record struct Playlist(
             if (string.IsNullOrWhiteSpace(line) || line.StartsWith('#'))
                 continue;
             string fileName = Path.GetFileName(line);
-            if (!allTracks.TryGetValue(fileName, out Track track)) {
+            if (!allTracks.TryGet(fileName, out Track track)) {
                 hasUnrecognized = true;
-                tracks.Add(new Track {
-                    title = line,
-                    artist = "",
-                    links = []
-                });
+                track.title = line;
+                tracks.Add(track);
                 paths.Append(line);
                 continue;
             }
@@ -45,8 +41,7 @@ public partial record struct Playlist(
         };
     }
 
-    private static async Task<Playlist> FromFoobar2000(IReadOnlyDictionary<string, Track> allTracks, string path,
-        string name, bool authorized) {
+    private static async Task<Playlist> FromFoobar2000(Tracks allTracks, string path, string name, bool authorized) {
         bool hasUnrecognized = false;
         List<Track> tracks = [];
         StringBuilder paths = new();
@@ -65,13 +60,10 @@ public partial record struct Playlist(
                 continue;
             }
             string fileName = Path.GetFileName(uri.LocalPath);
-            if (!allTracks.TryGetValue(fileName, out Track track)) {
+            if (!allTracks.TryGet(fileName, out Track track)) {
                 hasUnrecognized = true;
-                tracks.Add(new Track {
-                    title = uri.LocalPath,
-                    artist = "",
-                    links = []
-                });
+                track.title = uri.LocalPath;
+                tracks.Add(track);
                 paths.Append(uri.LocalPath);
                 continue;
             }
@@ -89,8 +81,7 @@ public partial record struct Playlist(
     }
 
     // reads my own funny format
-    private static async Task<Playlist> FromPoweramp(IReadOnlyDictionary<string, Track> allTracks, string path,
-        bool authorized) {
+    private static async Task<Playlist> FromPoweramp(Tracks allTracks, string path, bool authorized) {
         string? name = null;
         bool hasUnrecognized = false;
         List<Track> tracks = [];
@@ -103,13 +94,10 @@ public partial record struct Playlist(
                 continue;
             }
             string fileName = Path.GetFileName(line);
-            if (!allTracks.TryGetValue(fileName, out Track track)) {
+            if (!allTracks.TryGet(fileName, out Track track)) {
                 hasUnrecognized = true;
-                tracks.Add(new Track {
-                    title = line,
-                    artist = "",
-                    links = []
-                });
+                track.title = line;
+                tracks.Add(track);
                 paths.Append(line);
                 continue;
             }
@@ -128,8 +116,7 @@ public partial record struct Playlist(
         };
     }
 
-    public static async Task<IReadOnlyDictionary<int, Playlist>> All(IReadOnlyDictionary<string, Track> allTracks,
-        bool authorized) {
+    public static async Task<IReadOnlyDictionary<int, Playlist>> All(Tracks allTracks, bool authorized) {
         Dictionary<int, Playlist> playlists = [];
 
         await AddOtherPlaylists(allTracks, playlists, authorized);
@@ -143,8 +130,7 @@ public partial record struct Playlist(
         return playlists;
     }
 
-    private static async Task AddOtherPlaylists(IReadOnlyDictionary<string, Track> allTracks,
-        Dictionary<int, Playlist> playlists, bool authorized) {
+    private static async Task AddOtherPlaylists(Tracks allTracks, Dictionary<int, Playlist> playlists, bool authorized) {
         foreach (string path in Directory.EnumerateFiles(Paths.music)) {
             string fileName = Path.GetFileName(path);
             if (FilePlaylistRegex().IsMatch(fileName))
@@ -154,8 +140,7 @@ public partial record struct Playlist(
         }
     }
 
-    private static async Task AddFoobar2000Playlists(IReadOnlyDictionary<string, Track> allTracks,
-        Dictionary<int, Playlist> playlists, bool authorized) {
+    private static async Task AddFoobar2000Playlists(Tracks allTracks, Dictionary<int, Playlist> playlists, bool authorized) {
         foreach (string line in await File.ReadAllLinesAsync(Paths.foobar2000PlaylistIndex)) {
             if (string.IsNullOrWhiteSpace(line))
                 continue;

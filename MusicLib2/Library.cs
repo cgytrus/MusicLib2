@@ -5,9 +5,9 @@ public readonly record struct Library(
     IReadOnlyDictionary<int, Playlist> playlists
 ) {
     public static async Task<Library> Get(bool authorized) {
-        IReadOnlyDictionary<string, Track> tracks = Track.All();
+        Tracks tracks = Tracks.All();
         return new Library {
-            tracks = tracks.Values.Where(x => authorized || !string.IsNullOrEmpty(x.artist)),
+            tracks = tracks.all.Values.Where(x => authorized || !string.IsNullOrEmpty(x.artist)),
             playlists = await Playlist.All(tracks, authorized)
         };
     }
