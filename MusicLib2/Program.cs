@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using MusicLib2;
 using TagLib;
 using YoutubeDLSharp;
@@ -417,6 +418,61 @@ draftGroup.MapDelete("/{draftId}", async (HttpContext ctx, uint draftId) => {
     }
 
     return Results.NoContent();
+}).WithOpenApi();
+
+baseGroup.MapPost("/import", async (HttpContext ctx) => {
+    if (!TryAuthorize(ctx))
+        return Results.Unauthorized();
+
+    Dictionary<string, JsonValue>[]? tracksJson =
+        await new HttpClient().GetFromJsonAsync<Dictionary<string, JsonValue>[]>("https://api.cgyt.ru/music/v1/user/cgytrus/tracks");
+    if (tracksJson is null)
+        return Results.Problem("tracks is null", null, 500, "Error fetching tracks.");
+
+    List<string> messages = [];
+
+    Dictionary<string, string> oldLinks = [];
+    foreach (Dictionary<string, JsonValue> track in tracksJson) {
+        if (!track.TryGetValue("title", out JsonValue? titleJson) || !track.TryGetValue("artist", out JsonValue? artistJson) ||
+            !track.TryGetValue("album", out JsonValue? albumJson)) {
+            continue;
+        }
+        List<string> links = [];
+        if (track.TryGetValue("listen", out JsonValue? listenJson))
+            links.Add(listenJson.GetValue<string>());
+        if (track.TryGetValue("download", out JsonValue? downloadJson) && downloadJson != listenJson)
+            links.Add(downloadJson.GetValue<string>());
+        if (links.Count > 0)
+            oldLinks[titleJson.GetValue<string>() + artistJson.GetValue<string>() + albumJson.GetValue<string>()] = string.Join('\n', links);
+    }
+
+    foreach ((string? fileName, Track track) in Tracks.All().all.OrderBy(x => new FileInfo(Path.Join(Paths.music, x.Key)).LastWriteTimeUtc)) {
+        if (!oldLinks.TryGetValue(track.title + track.artist + track.album, out string? links))
+            continue;
+
+        string filePath = Path.Join(Paths.music, fileName);
+
+        TagLib.File? tags;
+        try { tags = TagLib.File.Create(filePath); }
+        catch (Exception ex) {
+            messages.Add(ex.ToString());
+            continue;
+        }
+        if (tags is null) {
+            messages.Add("tags is null");
+            continue;
+        }
+
+        try {
+            tags.Tag.Comment = string.IsNullOrWhiteSpace(tags.Tag.Comment) ? links : $"{tags.Tag.Comment}\n{links}";
+            tags.Save();
+        }
+        catch (Exception ex) {
+            messages.Add(ex.ToString());
+        }
+    }
+
+    return Results.Json(messages);
 }).WithOpenApi();
 
 app.Run();

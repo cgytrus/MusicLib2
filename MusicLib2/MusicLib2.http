@@ -1,5 +1,5 @@
 @Host = http://localhost:5207
-@Base = {{Host}}/music/v2
+@Base = {{Host}}/v2
 
 @PlaylistFilename = save..m3u8
 @Token = Br3eLY1DfgaQxZDeTIYZVA
@@ -7,6 +7,11 @@
 ###
 
 GET {{Base}}/auth
+Authorization: Bearer {{Token}}
+
+###
+
+POST {{Base}}/import
 Authorization: Bearer {{Token}}
 
 ###
