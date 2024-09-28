@@ -22,6 +22,8 @@ builder.Services.AddCors(options => {
 
 WebApplication app = builder.Build();
 
+app.UsePathBase("/music");
+
 if (app.Environment.IsDevelopment()) {
     app.UseSwagger();
     app.UseSwaggerUI();
