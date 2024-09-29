@@ -72,18 +72,29 @@ public class DownloadingFile : IProgress<DownloadProgress> {
                                 file.Report(new DownloadProgress(DownloadState.Downloading, progress));
                             };
                             HttpClient client = new(progressHandler);
-                            await f.WriteAsync(await client.GetByteArrayAsync(dl["url"]), file._cts.Token);
+                            await f.WriteAsync(await client.GetByteArrayAsync(dl["url"], file._cts.Token),
+                                file._cts.Token);
                         }
-                        file.Report(new DownloadProgress(DownloadState.PostProcessing, 1f));
-                        IMediaAnalysis analysis = await FFProbe.AnalyseAsync(filePath);
+                        file.Report(new DownloadProgress(DownloadState.PostProcessing));
+                        IMediaAnalysis analysis = await FFProbe.AnalyseAsync(filePath, null, file._cts.Token);
                         // taglib assumes container format based on extension and
                         // cobalt downloads matroska,webm files from youtube
                         // but sets file extension based on codec, which is usually opus
                         // unlike yt-dlp which correctly chooses webm
-                        if (analysis.Format.FormatName.EndsWith("webm")) {
-                            string newFilePath = Path.ChangeExtension(filePath, ".webm");
-                            File.Move(filePath, newFilePath);
-                            filePath = newFilePath;
+                        // remux webm to opus
+                        if (analysis.Format.FormatName.EndsWith("webm") &&
+                            analysis.PrimaryAudioStream?.CodecName == "opus") {
+                            string inFilePath = Path.ChangeExtension(filePath, ".webm");
+                            File.Move(filePath, inFilePath);
+                            await FFMpegArguments
+                                .FromFileInput(inFilePath)
+                                .OutputToFile(filePath, true, x => x
+                                    .WithCustomArgument("-map 0")
+                                    .WithCustomArgument("-c copy"))
+                                .CancellableThrough(file._cts.Token)
+                                .ProcessAsynchronously(true, new FFOptions {
+                                    WorkingDirectory = dir
+                                });
                         }
                         file.Report(new DownloadProgress(DownloadState.Success, 1f, data: filePath));
                     }
