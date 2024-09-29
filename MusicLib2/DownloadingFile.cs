@@ -2,13 +2,14 @@
 using System.Net.Http.Handlers;
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using FFMpegCore;
 using YoutubeDLSharp;
 using YoutubeDLSharp.Options;
 
 namespace MusicLib2;
 
-public class DownloadingFile : IProgress<DownloadProgress> {
+public partial class DownloadingFile : IProgress<DownloadProgress> {
     private static readonly Dictionary<uint, DownloadingFile> downloadingFiles = [];
 
     public DownloadProgress progress { get; private set; } = new(DownloadState.None);
@@ -62,7 +63,7 @@ public class DownloadingFile : IProgress<DownloadProgress> {
                             file.Report(new DownloadProgress(DownloadState.Error, data: "dl is null"));
                             return;
                         }
-                        string filePath = Path.Join(dir, dl["filename"]);
+                        string filePath = Path.Join(dir, FileNameFilterRegex().Replace(dl["filename"], "_"));
                         await using (FileStream f = File.Create(filePath)) {
                             file.Report(new DownloadProgress(DownloadState.Downloading));
                             ProgressMessageHandler progressHandler = new(new HttpClientHandler());
@@ -192,4 +193,7 @@ public class DownloadingFile : IProgress<DownloadProgress> {
             progress = new DownloadProgress(DownloadState.Error, data: ex.ToString());
         }
     }
+
+    [GeneratedRegex(@"[^a-zA-Z0-9-_.,!()[\] ]")]
+    private static partial Regex FileNameFilterRegex();
 }
