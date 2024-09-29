@@ -64,7 +64,7 @@ public class DownloadingFile : IProgress<DownloadProgress> {
                         string filePath = Path.Join(dir, dl["filename"]);
                         await using (FileStream f = File.Create(filePath)) {
                             file.Report(new DownloadProgress(DownloadState.Downloading));
-                            ProgressMessageHandler progressHandler = new();
+                            ProgressMessageHandler progressHandler = new(new HttpClientHandler());
                             progressHandler.HttpReceiveProgress += (_, args) => {
                                 float progress = args.BytesTransferred;
                                 if (args.TotalBytes.HasValue)
