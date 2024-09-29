@@ -80,8 +80,11 @@ public class DownloadingFile : IProgress<DownloadProgress> {
                         // cobalt downloads matroska,webm files from youtube
                         // but sets file extension based on codec, which is usually opus
                         // unlike yt-dlp which correctly chooses webm
-                        if (analysis.Format.FormatName.EndsWith("webm"))
-                            filePath = Path.ChangeExtension(filePath, ".webm");
+                        if (analysis.Format.FormatName.EndsWith("webm")) {
+                            string newFilePath = Path.ChangeExtension(filePath, ".webm");
+                            File.Move(filePath, newFilePath);
+                            filePath = newFilePath;
+                        }
                         file.Report(new DownloadProgress(DownloadState.Success, 1f, data: filePath));
                     }
                     catch (Exception ex) {
