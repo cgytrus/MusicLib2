@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using FFMpegCore;
@@ -16,7 +15,6 @@ public class DownloadingFile : IProgress<DownloadProgress> {
     private readonly uint _id;
     private readonly string _dir;
     private readonly CancellationTokenSource _cts;
-    private Process? _vpn = null;
 
     private DownloadingFile(uint id, string dir) {
         _id = id;
@@ -24,7 +22,7 @@ public class DownloadingFile : IProgress<DownloadProgress> {
         _cts = new CancellationTokenSource();
     }
 
-    public static string? Start(string dir, uint id, string link, string? proxy) {
+    public static string? Start(string dir, uint id, string link, bool cobalt) {
         if (downloadingFiles.ContainsKey(id))
             return $"File {id} already downloading.";
 
@@ -35,41 +33,66 @@ public class DownloadingFile : IProgress<DownloadProgress> {
         };
 
         try {
-            YoutubeDL ytdl = new(1) {
-                RestrictFilenames = true
-            };
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                ytdl.YoutubeDLPath = "yt-dlp_linux";
-
-            if (!string.IsNullOrWhiteSpace(proxy)) {
-                ProcessStartInfo startInfo = new() {
-                    FileName = Environment.GetEnvironmentVariable("ML2_PROXY_PATH"),
-                    Arguments = $"-c '{Path.Join(Environment.GetEnvironmentVariable("ML2_VPN_CONFIG_PATH"), proxy)}'",
-                    UserName = "app"
-                };
-                file._vpn = Process.Start(startInfo);
-                if (file._vpn is null)
-                    return "failed to start vpn";
-                overrides.Proxy = Environment.GetEnvironmentVariable("ML2_PROXY");
-                Thread.Sleep(8000);
-                if (file._vpn.HasExited)
-                    return $"failed to start vpn {file._vpn.ExitCode}";
+            if (cobalt) {
+                HttpRequestMessage req = new(HttpMethod.Post, "https://api.cobalt.tools/");
+                req.Content = JsonContent.Create(new {
+                    url = link,
+                    downloadMode = "audio",
+                    audioFormat = "best",
+                    disableMetadata = true,
+                    alwaysProxy = true
+                });
+                req.Headers.Add("Accept", "application/json");
+                req.Headers.Add("Content-Type", "application/json");
+                file.Report(new DownloadProgress(DownloadState.PreProcessing));
+                new HttpClient().SendAsync(req, file._cts.Token).ContinueWith(async task => {
+                    try {
+                        if (!task.IsCompletedSuccessfully) {
+                            file.Report(new DownloadProgress(DownloadState.Error));
+                            return;
+                        }
+                        if (!task.Result.IsSuccessStatusCode) {
+                            file.Report(new DownloadProgress(DownloadState.Error, data: task.Result.ReasonPhrase));
+                            return;
+                        }
+                        Dictionary<string, string>? dl =
+                            await task.Result.Content.ReadFromJsonAsync<Dictionary<string, string>>(file._cts.Token);
+                        if (dl is null) {
+                            file.Report(new DownloadProgress(DownloadState.Error, data: "dl is null"));
+                            return;
+                        }
+                        await using (FileStream f = File.Create(Path.Join(dir, dl["filename"]))) {
+                            file.Report(new DownloadProgress(DownloadState.Downloading, 13.37f));
+                            await f.WriteAsync(await new HttpClient().GetByteArrayAsync(dl["url"]), file._cts.Token);
+                        }
+                        file.Report(new DownloadProgress(DownloadState.Success));
+                    }
+                    catch (Exception ex) {
+                        file.Report(new DownloadProgress(DownloadState.Error, data: ex.ToString()));
+                    }
+                }, file._cts.Token);
             }
-            ytdl.RunAudioDownload(
-                link,
-                AudioConversionFormat.Best,
-                file._cts.Token,
-                file,
-                null,
-                overrides
-            );
+            else {
+                YoutubeDL ytdl = new(1) {
+                    RestrictFilenames = true
+                };
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                    ytdl.YoutubeDLPath = "yt-dlp_linux";
+
+                ytdl.RunAudioDownload(
+                    link,
+                    AudioConversionFormat.Best,
+                    file._cts.Token,
+                    file,
+                    null,
+                    overrides
+                );
+            }
 
             downloadingFiles.Add(id, file);
             return null;
         }
         catch (Exception ex) {
-            try { file._vpn?.Kill(); }
-            catch { /* ignored */ }
             return ex.ToString();
         }
     }
@@ -80,8 +103,6 @@ public class DownloadingFile : IProgress<DownloadProgress> {
     public async Task CancelAsync() {
         await _cts.CancelAsync();
         downloadingFiles.Remove(_id);
-        try { _vpn?.Kill(); }
-        catch { /* ignored */ }
     }
 
     public void Report(DownloadProgress value) {
@@ -89,8 +110,6 @@ public class DownloadingFile : IProgress<DownloadProgress> {
             progress = value;
             return;
         }
-        try { _vpn?.Kill(); }
-        catch { /* ignored */ }
         if (!Directory.Exists(_dir)) {
             progress = new DownloadProgress(DownloadState.Error, data: "Draft does not exist.");
             return;

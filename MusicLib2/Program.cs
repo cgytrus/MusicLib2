@@ -195,9 +195,9 @@ draftGroup.MapPost("/{draftId}/file", async (HttpContext ctx, uint draftId) => {
     string filesPath = Path.Join(dir, "files.json");
     if (!File.Exists(filesPath))
         return Results.NotFound("Draft files does not exist?");
-    ProxiedLink link;
+    DownloadLink link;
     try {
-        link = await JsonSerializer.DeserializeAsync(ctx.Request.Body, SourceGenerationContext.Default.ProxiedLink);
+        link = await JsonSerializer.DeserializeAsync(ctx.Request.Body, SourceGenerationContext.Default.DownloadLink);
     }
     catch (JsonException ex) {
         return Results.BadRequest($"Input JSON data invalid. {ex.Message}");
@@ -220,7 +220,7 @@ draftGroup.MapPost("/{draftId}/file", async (HttpContext ctx, uint draftId) => {
         await JsonSerializer.SerializeAsync(file, files, SourceGenerationContext.Default.DictionaryUInt32File);
     }
 
-    string? error = DownloadingFile.Start(dir, fileId, link.link, link.proxy);
+    string? error = DownloadingFile.Start(dir, fileId, link.link, link.cobalt);
     return error is null ?
         Results.Created($"/draft/{draftId}/file/{fileId}", fileId) :
         Results.Problem(error, null, 500, "Failed to start download");
