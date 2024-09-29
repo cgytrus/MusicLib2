@@ -30,8 +30,9 @@ public class DownloadingFile : IProgress<DownloadProgress> {
 
         DownloadingFile file = new(id, dir);
 
-        OptionSet overrides = OptionSet.Default;
-        overrides.WindowsFilenames = true;
+        OptionSet overrides = new() {
+            WindowsFilenames = true
+        };
 
         try {
             YoutubeDL ytdl = new(1) {
@@ -46,7 +47,12 @@ public class DownloadingFile : IProgress<DownloadProgress> {
                     Arguments = $"-c '{Path.Join(Paths.baseReadDir, proxy)}'"
                 };
                 file._vpn = Process.Start(startInfo);
+                if (file._vpn is null)
+                    return "failed to start vpn";
                 overrides.Proxy = Environment.GetEnvironmentVariable("ML2_PROXY");
+                Thread.Sleep(1000);
+                if (file._vpn.HasExited)
+                    return $"failed to start vpn {file._vpn.ExitCode}";
             }
             ytdl.RunAudioDownload(
                 link,
@@ -62,7 +68,7 @@ public class DownloadingFile : IProgress<DownloadProgress> {
         }
         catch (Exception ex) {
             try { file._vpn?.Kill(); }
-            catch { /* ignored*/ }
+            catch { /* ignored */ }
             return ex.ToString();
         }
     }
@@ -74,7 +80,7 @@ public class DownloadingFile : IProgress<DownloadProgress> {
         await _cts.CancelAsync();
         downloadingFiles.Remove(_id);
         try { _vpn?.Kill(); }
-        catch { /* ignored*/ }
+        catch { /* ignored */ }
     }
 
     public void Report(DownloadProgress value) {
@@ -83,7 +89,7 @@ public class DownloadingFile : IProgress<DownloadProgress> {
             return;
         }
         try { _vpn?.Kill(); }
-        catch { /* ignored*/ }
+        catch { /* ignored */ }
         if (!Directory.Exists(_dir)) {
             progress = new DownloadProgress(DownloadState.Error, data: "Draft does not exist.");
             return;
