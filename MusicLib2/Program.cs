@@ -345,6 +345,12 @@ draftGroup.MapPost("/{draftId}/finalize/{fileId}", async (HttpContext ctx, uint 
 
     TagLib.File? tags;
     try { tags = TagLib.File.Create(filePath); }
+    catch (CorruptFileException) {
+        try { tags = TagLib.File.Create(filePath, ReadStyle.None); }
+        catch (Exception ex) {
+            return Results.Problem(ex.ToString(), null, 500, "Error reading metadata.");
+        }
+    }
     catch (Exception ex) {
         return Results.Problem(ex.ToString(), null, 500, "Error reading metadata.");
     }
