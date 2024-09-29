@@ -60,11 +60,12 @@ public class DownloadingFile : IProgress<DownloadProgress> {
                             file.Report(new DownloadProgress(DownloadState.Error, data: "dl is null"));
                             return;
                         }
-                        await using (FileStream f = File.Create(Path.Join(dir, dl["filename"]))) {
+                        string filePath = Path.Join(dir, dl["filename"]);
+                        await using (FileStream f = File.Create(filePath)) {
                             file.Report(new DownloadProgress(DownloadState.Downloading, 13.37f));
                             await f.WriteAsync(await new HttpClient().GetByteArrayAsync(dl["url"]), file._cts.Token);
                         }
-                        file.Report(new DownloadProgress(DownloadState.Success));
+                        file.Report(new DownloadProgress(DownloadState.Success, data: filePath));
                     }
                     catch (Exception ex) {
                         file.Report(new DownloadProgress(DownloadState.Error, data: ex.ToString()));
