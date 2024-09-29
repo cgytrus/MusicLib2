@@ -44,13 +44,14 @@ public class DownloadingFile : IProgress<DownloadProgress> {
             if (!string.IsNullOrWhiteSpace(proxy)) {
                 ProcessStartInfo startInfo = new() {
                     FileName = Environment.GetEnvironmentVariable("ML2_PROXY_PATH"),
-                    Arguments = $"-c '{Path.Join(Paths.baseReadDir, proxy)}'"
+                    Arguments = $"-c '{Path.Join(Paths.baseReadDir, proxy)}'",
+                    UserName = "app"
                 };
                 file._vpn = Process.Start(startInfo);
                 if (file._vpn is null)
                     return "failed to start vpn";
                 overrides.Proxy = Environment.GetEnvironmentVariable("ML2_PROXY");
-                Thread.Sleep(1000);
+                Thread.Sleep(8000);
                 if (file._vpn.HasExited)
                     return $"failed to start vpn {file._vpn.ExitCode}";
             }
