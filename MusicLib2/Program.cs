@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Microsoft.AspNetCore.Http.Features;
 using MusicLib2;
 using TagLib;
 using YoutubeDLSharp;
@@ -165,6 +166,9 @@ draftGroup.MapPut("/{draftId}/art", async (HttpContext ctx, uint draftId) => {
         await Draft.SaveArt(Path.Join(dir, "art.jpg"), await new HttpClient().GetStreamAsync(link));
     }
     else {
+        IHttpMaxRequestBodySizeFeature? sizeLimit = ctx.Features.Get<IHttpMaxRequestBodySizeFeature>();
+        if (sizeLimit is not null)
+            sizeLimit.MaxRequestBodySize = 64 * 1024 * 1024;
         await Draft.SaveArt(Path.Join(dir, "art.jpg"), ctx.Request.Body);
     }
     return Results.NoContent();
