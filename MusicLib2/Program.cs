@@ -169,6 +169,8 @@ draftGroup.MapPut("/{draftId}/art", async (HttpContext ctx, uint draftId) => {
         IHttpMaxRequestBodySizeFeature? sizeLimit = ctx.Features.Get<IHttpMaxRequestBodySizeFeature>();
         if (sizeLimit is not null)
             sizeLimit.MaxRequestBodySize = 64 * 1024 * 1024;
+        else
+            return Results.Problem(null, null, 500, "sizeLimit doest exis");
         await Draft.SaveArt(Path.Join(dir, "art.jpg"), ctx.Request.Body);
     }
     return Results.NoContent();
