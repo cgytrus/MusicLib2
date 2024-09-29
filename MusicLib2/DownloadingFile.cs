@@ -61,6 +61,7 @@ public class DownloadingFile : IProgress<DownloadProgress> {
             return null;
         }
         catch (Exception ex) {
+            file._vpn?.Kill();
             return ex.ToString();
         }
     }
