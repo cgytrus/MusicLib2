@@ -65,7 +65,15 @@ public class DownloadingFile : IProgress<DownloadProgress> {
                             file.Report(new DownloadProgress(DownloadState.Downloading, 13.37f));
                             await f.WriteAsync(await new HttpClient().GetByteArrayAsync(dl["url"]), file._cts.Token);
                         }
-                        file.Report(new DownloadProgress(DownloadState.Success, data: filePath));
+                        file.Report(new DownloadProgress(DownloadState.PostProcessing, 1f));
+                        IMediaAnalysis analysis = await FFProbe.AnalyseAsync(filePath);
+                        // taglib assumes container format based on extension and
+                        // cobalt downloads matroska,webm files from youtube
+                        // but sets file extension based on codec, which is usually opus
+                        // unlike yt-dlp which correctly chooses webm
+                        if (analysis.Format.FormatName.EndsWith("webm"))
+                            filePath = Path.ChangeExtension(filePath, ".webm");
+                        file.Report(new DownloadProgress(DownloadState.Success, 1f, data: filePath));
                     }
                     catch (Exception ex) {
                         file.Report(new DownloadProgress(DownloadState.Error, data: ex.ToString()));
