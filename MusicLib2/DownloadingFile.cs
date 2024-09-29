@@ -40,6 +40,7 @@ public class DownloadingFile : IProgress<DownloadProgress> {
                     url = link,
                     downloadMode = "audio",
                     audioFormat = "best",
+                    filenameStyle = "nerdy",
                     disableMetadata = true,
                     alwaysProxy = true
                 });
