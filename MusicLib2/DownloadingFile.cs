@@ -44,7 +44,7 @@ public class DownloadingFile : IProgress<DownloadProgress> {
             if (!string.IsNullOrWhiteSpace(proxy)) {
                 ProcessStartInfo startInfo = new() {
                     FileName = Environment.GetEnvironmentVariable("ML2_PROXY_PATH"),
-                    Arguments = $"-c '{Path.Join(Paths.baseReadDir, proxy)}'",
+                    Arguments = $"-c '{Path.Join(Environment.GetEnvironmentVariable("ML2_VPN_CONFIG_PATH"), proxy)}'",
                     UserName = "app"
                 };
                 file._vpn = Process.Start(startInfo);
