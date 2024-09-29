@@ -14,6 +14,7 @@ namespace MusicLib2;
 [JsonSerializable(typeof(Draft.File.ReadyDto))]
 [JsonSerializable(typeof(Draft))]
 [JsonSerializable(typeof(Dictionary<uint, Draft.File>))]
+[JsonSerializable(typeof(ProxiedLink))]
 internal partial class SourceGenerationContext : JsonSerializerContext;
 
 // UseStringEnumConverter doesn't allow me to set the naming policy

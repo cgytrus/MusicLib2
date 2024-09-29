@@ -195,11 +195,14 @@ draftGroup.MapPost("/{draftId}/file", async (HttpContext ctx, uint draftId) => {
     string filesPath = Path.Join(dir, "files.json");
     if (!File.Exists(filesPath))
         return Results.NotFound("Draft files does not exist?");
-    string link;
-    using (StreamReader reader = new(ctx.Request.Body)) {
-        link = await reader.ReadToEndAsync();
+    ProxiedLink link;
+    try {
+        link = await JsonSerializer.DeserializeAsync(ctx.Request.Body, SourceGenerationContext.Default.ProxiedLink);
     }
-    if (!Uri.IsWellFormedUriString(link, UriKind.Absolute))
+    catch (JsonException ex) {
+        return Results.BadRequest($"Input JSON data invalid. {ex.Message}");
+    }
+    if (!Uri.IsWellFormedUriString(link.link, UriKind.Absolute))
         return Results.BadRequest("Invalid URI.");
 
     Dictionary<uint, Draft.File> files;
@@ -207,17 +210,17 @@ draftGroup.MapPost("/{draftId}/file", async (HttpContext ctx, uint draftId) => {
         files = await JsonSerializer.DeserializeAsync(file, SourceGenerationContext.Default.DictionaryUInt32File) ?? [];
     }
 
-    if (files.Values.Any(x => x.link == link))
+    if (files.Values.Any(x => x.link == link.link))
         return Results.BadRequest("File with this link already added.");
 
     uint fileId = files.Count == 0 ? 1 : files.Keys.Max() + 1;
-    files[fileId] = new Draft.File(link, Draft.File.Status.Downloading, "");
+    files[fileId] = new Draft.File(link.link, Draft.File.Status.Downloading, "");
 
     await using (FileStream file = File.Create(filesPath)) {
         await JsonSerializer.SerializeAsync(file, files, SourceGenerationContext.Default.DictionaryUInt32File);
     }
 
-    string? error = DownloadingFile.Start(dir, fileId, link);
+    string? error = DownloadingFile.Start(dir, fileId, link.link, link.proxy);
     return error is null ?
         Results.Created($"/draft/{draftId}/file/{fileId}", fileId) :
         Results.Problem(error, null, 500, "Failed to start download");

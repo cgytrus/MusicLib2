@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using FFMpegCore;
@@ -22,7 +23,7 @@ public class DownloadingFile : IProgress<DownloadProgress> {
         _cts = new CancellationTokenSource();
     }
 
-    public static string? Start(string dir, uint id, string link) {
+    public static string? Start(string dir, uint id, string link, string? proxy) {
         if (downloadingFiles.ContainsKey(id))
             return $"File {id} already downloading.";
 
@@ -38,6 +39,15 @@ public class DownloadingFile : IProgress<DownloadProgress> {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
                 ytdl.YoutubeDLPath = "yt-dlp_linux";
 
+            Process? proxyProc = null;
+            if (!string.IsNullOrWhiteSpace(proxy)) {
+                ProcessStartInfo startInfo = new() {
+                    FileName = Environment.GetEnvironmentVariable("ML2_PROXY_PATH"),
+                    Arguments = $"-c '{Path.Join(Paths.baseReadDir, proxy)}'"
+                };
+                proxyProc = Process.Start(startInfo);
+                overrides.Proxy = Environment.GetEnvironmentVariable("ML2_PROXY");
+            }
             ytdl.RunAudioDownload(
                 link,
                 AudioConversionFormat.Best,
@@ -46,6 +56,7 @@ public class DownloadingFile : IProgress<DownloadProgress> {
                 null,
                 overrides
             );
+            proxyProc?.Kill();
 
             downloadingFiles.Add(id, file);
             return null;

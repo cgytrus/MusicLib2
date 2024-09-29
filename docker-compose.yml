@@ -10,6 +10,8 @@
     environment:
       ML2_PATH: "/home/app/MusicLib2"
       ML2_READ_PATH: "/music"
+      ML2_PROXY_PATH: "/music/wireproxy"
+      ML2_PROXY: "socks5://127.0.0.1:25344"
     volumes:
     - ~/music:/music
     restart: unless-stopped
