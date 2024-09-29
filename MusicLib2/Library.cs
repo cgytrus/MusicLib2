@@ -9,7 +9,7 @@ public readonly record struct Library(
         return new Library {
             tracks = tracks.all
                 .Where(x => authorized || !string.IsNullOrEmpty(x.Value.artist))
-                .OrderBy(x => {
+                .OrderByDescending(x => {
                     try {
                         return File.GetLastWriteTimeUtc(Path.Join(Paths.music, x.Key));
                     }
