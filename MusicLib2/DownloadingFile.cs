@@ -43,7 +43,6 @@ public class DownloadingFile : IProgress<DownloadProgress> {
                     alwaysProxy = true
                 });
                 req.Headers.Add("Accept", "application/json");
-                req.Headers.Add("Content-Type", "application/json");
                 file.Report(new DownloadProgress(DownloadState.PreProcessing));
                 new HttpClient().SendAsync(req, file._cts.Token).ContinueWith(async task => {
                     try {
