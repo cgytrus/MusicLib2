@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Net.Http.Handlers;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using FFMpegCore;
@@ -62,8 +63,16 @@ public class DownloadingFile : IProgress<DownloadProgress> {
                         }
                         string filePath = Path.Join(dir, dl["filename"]);
                         await using (FileStream f = File.Create(filePath)) {
-                            file.Report(new DownloadProgress(DownloadState.Downloading, 13.37f));
-                            await f.WriteAsync(await new HttpClient().GetByteArrayAsync(dl["url"]), file._cts.Token);
+                            file.Report(new DownloadProgress(DownloadState.Downloading));
+                            ProgressMessageHandler progressHandler = new();
+                            progressHandler.HttpReceiveProgress += (_, args) => {
+                                float progress = args.BytesTransferred;
+                                if (args.TotalBytes.HasValue)
+                                    progress /= args.TotalBytes.Value;
+                                file.Report(new DownloadProgress(DownloadState.Downloading, progress));
+                            };
+                            HttpClient client = new(progressHandler);
+                            await f.WriteAsync(await client.GetByteArrayAsync(dl["url"]), file._cts.Token);
                         }
                         file.Report(new DownloadProgress(DownloadState.PostProcessing, 1f));
                         IMediaAnalysis analysis = await FFProbe.AnalyseAsync(filePath);
