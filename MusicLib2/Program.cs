@@ -21,6 +21,8 @@ builder.Services.AddCors(options => {
     });
 });
 
+builder.WebHost.UseKestrel(o => o.Limits.MaxRequestBodySize = null);
+
 WebApplication app = builder.Build();
 
 app.UsePathBase("/music");
@@ -149,11 +151,11 @@ draftGroup.MapPut("/{draftId}/meta", async (HttpContext ctx, uint draftId) => {
 }).WithOpenApi();
 
 draftGroup.MapPut("/{draftId}/art", async (HttpContext ctx, uint draftId) => {
-    IHttpMaxRequestBodySizeFeature? sizeLimit = ctx.Features.Get<IHttpMaxRequestBodySizeFeature>();
-    if (sizeLimit is not null)
-        sizeLimit.MaxRequestBodySize = 64 * 1024 * 1024;
-    else
-        return Results.Problem(null, null, 500, "sizeLimit doest exis");
+    //IHttpMaxRequestBodySizeFeature? sizeLimit = ctx.Features.Get<IHttpMaxRequestBodySizeFeature>();
+    //if (sizeLimit is not null)
+    //    sizeLimit.MaxRequestBodySize = 64 * 1024 * 1024;
+    //else
+    //    return Results.Problem(null, null, 500, "sizeLimit doest exis");
     if (!TryAuthorize(ctx))
         return Results.Unauthorized();
     if (ctx.Request.ContentType is null)
