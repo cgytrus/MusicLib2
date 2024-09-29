@@ -116,6 +116,7 @@ public class DownloadingFile : IProgress<DownloadProgress> {
 
     public static bool TryGet(uint id, [NotNullWhen(true)] out DownloadingFile? file) =>
         downloadingFiles.TryGetValue(id, out file);
+    public static DownloadingFile? Get(uint id) => TryGet(id, out DownloadingFile? file) ? file : null;
 
     public async Task CancelAsync() {
         await _cts.CancelAsync();

@@ -245,9 +245,15 @@ draftGroup.MapGet("/{draftId}/file/{fileId}", async (HttpContext ctx, uint draft
         return Results.NotFound("Draft file does not exist.");
 
     return file.status switch {
-        Draft.File.Status.Downloading => DownloadingFile.TryGet(fileId, out DownloadingFile? dl) ?
-            Results.Json(new Draft.File.DownloadingDto(file.link, file.status, dl.progress),
-                SourceGenerationContext.Default.DownloadingDto) : Results.NotFound("Downloading file does not exist."),
+        Draft.File.Status.Downloading => Results.Json(
+            new Draft.File.DownloadingDto {
+                link = file.link,
+                status = file.status,
+                progress = DownloadingFile.Get(fileId)?.progress ??
+                    new DownloadProgress(DownloadState.Error, data: "Downloading file does not exist.")
+            },
+            SourceGenerationContext.Default.DownloadingDto
+        ),
         Draft.File.Status.Ready => Results.Json(await file.AnalyzeAsync(dir), SourceGenerationContext.Default.ReadyDto),
         _ => Results.Problem(file.status.ToString(), null, 500, "Unknown file status.")
     };
