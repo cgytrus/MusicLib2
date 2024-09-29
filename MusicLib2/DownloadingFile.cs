@@ -16,6 +16,7 @@ public class DownloadingFile : IProgress<DownloadProgress> {
     private readonly uint _id;
     private readonly string _dir;
     private readonly CancellationTokenSource _cts;
+    private Process? _vpn = null;
 
     private DownloadingFile(uint id, string dir) {
         _id = id;
@@ -39,13 +40,12 @@ public class DownloadingFile : IProgress<DownloadProgress> {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
                 ytdl.YoutubeDLPath = "yt-dlp_linux";
 
-            Process? proxyProc = null;
             if (!string.IsNullOrWhiteSpace(proxy)) {
                 ProcessStartInfo startInfo = new() {
                     FileName = Environment.GetEnvironmentVariable("ML2_PROXY_PATH"),
                     Arguments = $"-c '{Path.Join(Paths.baseReadDir, proxy)}'"
                 };
-                proxyProc = Process.Start(startInfo);
+                file._vpn = Process.Start(startInfo);
                 overrides.Proxy = Environment.GetEnvironmentVariable("ML2_PROXY");
             }
             ytdl.RunAudioDownload(
@@ -56,7 +56,6 @@ public class DownloadingFile : IProgress<DownloadProgress> {
                 null,
                 overrides
             );
-            proxyProc?.Kill();
 
             downloadingFiles.Add(id, file);
             return null;
@@ -72,6 +71,7 @@ public class DownloadingFile : IProgress<DownloadProgress> {
     public async Task CancelAsync() {
         await _cts.CancelAsync();
         downloadingFiles.Remove(_id);
+        _vpn?.Kill();
     }
 
     public void Report(DownloadProgress value) {
@@ -79,6 +79,7 @@ public class DownloadingFile : IProgress<DownloadProgress> {
             progress = value;
             return;
         }
+        _vpn?.Kill();
         if (!Directory.Exists(_dir)) {
             progress = new DownloadProgress(DownloadState.Error, data: "Draft does not exist.");
             return;
