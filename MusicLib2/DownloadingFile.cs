@@ -61,7 +61,8 @@ public class DownloadingFile : IProgress<DownloadProgress> {
             return null;
         }
         catch (Exception ex) {
-            file._vpn?.Kill();
+            try { file._vpn?.Kill(); }
+            catch { /* ignored*/ }
             return ex.ToString();
         }
     }
@@ -72,7 +73,8 @@ public class DownloadingFile : IProgress<DownloadProgress> {
     public async Task CancelAsync() {
         await _cts.CancelAsync();
         downloadingFiles.Remove(_id);
-        _vpn?.Kill();
+        try { _vpn?.Kill(); }
+        catch { /* ignored*/ }
     }
 
     public void Report(DownloadProgress value) {
@@ -80,7 +82,8 @@ public class DownloadingFile : IProgress<DownloadProgress> {
             progress = value;
             return;
         }
-        _vpn?.Kill();
+        try { _vpn?.Kill(); }
+        catch { /* ignored*/ }
         if (!Directory.Exists(_dir)) {
             progress = new DownloadProgress(DownloadState.Error, data: "Draft does not exist.");
             return;
