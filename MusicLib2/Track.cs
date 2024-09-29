@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
 namespace MusicLib2;
@@ -13,7 +14,9 @@ public partial record struct Track(
     uint trackCount,
     uint discNumber,
     uint discCount,
-    IReadOnlyCollection<string> links
+    IReadOnlyCollection<string> links,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? error = null
 ) {
     public static Track FromFile(string path) {
         Track track;
@@ -32,6 +35,10 @@ public partial record struct Track(
                 links = string.IsNullOrWhiteSpace(file.Tag.Comment) ? [] : NewLineRegex().Split(file.Tag.Comment)
                     .Where(line => Uri.IsWellFormedUriString(line, UriKind.Absolute)).Distinct().ToImmutableArray()
             };
+            if (string.IsNullOrEmpty(track.title) ||
+                string.IsNullOrEmpty(track.artist) ||
+                track.year == 0)
+                track.error = "missing metadata";
             if (string.IsNullOrEmpty(track.title))
                 track.title = Path.GetFileName(path);
         }
@@ -39,8 +46,8 @@ public partial record struct Track(
             track = new Track {
                 title = Path.GetFileName(path),
                 artist = "",
-                album = ex.ToString(),
-                links = []
+                links = [],
+                error = ex.ToString()
             };
         }
         return track;

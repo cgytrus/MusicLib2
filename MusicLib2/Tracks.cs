@@ -28,7 +28,8 @@ public readonly struct Tracks {
         track = new Track {
             title = fileName,
             artist = "",
-            links = []
+            links = [],
+            error = "track not found"
         };
         return false;
     }

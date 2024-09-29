@@ -28,7 +28,7 @@ public partial record struct Playlist(
                 paths.Append(line);
                 continue;
             }
-            if (!authorized && string.IsNullOrEmpty(track.artist))
+            if (!authorized && track.error is not null)
                 continue;
             tracks.Add(track);
             paths.Append(fileName);
@@ -54,7 +54,8 @@ public partial record struct Playlist(
                 tracks.Add(new Track {
                     title = line,
                     artist = "",
-                    links = []
+                    links = [],
+                    error = "foobar2000 playlist track is not a file"
                 });
                 paths.Append(line);
                 continue;
@@ -67,7 +68,7 @@ public partial record struct Playlist(
                 paths.Append(uri.LocalPath);
                 continue;
             }
-            if (!authorized && string.IsNullOrEmpty(track.artist))
+            if (!authorized && track.error is not null)
                 continue;
             tracks.Add(track);
             paths.Append(fileName);
@@ -101,7 +102,7 @@ public partial record struct Playlist(
                 paths.Append(line);
                 continue;
             }
-            if (!authorized && string.IsNullOrEmpty(track.artist))
+            if (!authorized && track.error is not null)
                 continue;
             tracks.Add(track);
             paths.Append(fileName);
