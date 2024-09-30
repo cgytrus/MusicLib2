@@ -11,7 +11,8 @@ public readonly struct Tracks {
         ".ogg",
         ".m4a",
         ".flac",
-        ".wav"
+        ".wav",
+        ".webm"
     ];
 
     private Tracks(IReadOnlyDictionary<string, Track> tracks) {
