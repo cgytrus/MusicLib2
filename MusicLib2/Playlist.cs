@@ -87,7 +87,7 @@ public partial record struct Playlist(
 
         MusicBeePreRead(reader);
         int trackCount = reader.ReadInt32();
-        for (int i = 1; i < trackCount; i++) {
+        for (int i = 0; i < trackCount; i++) {
             string filePath = reader.ReadString();
             string fileName = filePath.Split('\\').LastOrDefault("");
 
