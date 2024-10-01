@@ -11,7 +11,7 @@ public partial record struct Playlist(
     [property: JsonIgnore]
     int hash
 ) {
-    public enum Type { File, Foobar2000, Poweramp }
+    public enum Type { File, Poweramp, MusicBee }
 
     private static async Task<Playlist> FromFile(Tracks allTracks, string path, bool authorized) {
         bool hasUnrecognized = false;
@@ -35,46 +35,6 @@ public partial record struct Playlist(
         }
         return new Playlist {
             names = new Dictionary<string, List<Type>> { { Path.GetFileNameWithoutExtension(path), [Type.File] } },
-            hasUnrecognized = hasUnrecognized,
-            tracks = tracks,
-            hash = paths.ToString().GetHashCode()
-        };
-    }
-
-    private static async Task<Playlist> FromFoobar2000(Tracks allTracks, string path, string name, bool authorized) {
-        bool hasUnrecognized = false;
-        List<Track> tracks = [];
-        StringBuilder paths = new();
-        await foreach (string line in File.ReadLinesAsync(path)) {
-            if (string.IsNullOrWhiteSpace(line))
-                continue;
-            Uri uri = new(line);
-            if (!uri.IsFile) {
-                hasUnrecognized = true;
-                tracks.Add(new Track {
-                    title = line,
-                    artist = "",
-                    links = [],
-                    error = "foobar2000 playlist track is not a file"
-                });
-                paths.Append(line);
-                continue;
-            }
-            string fileName = uri.LocalPath.Split('\\').LastOrDefault("");
-            if (!allTracks.TryGet(fileName, out Track track)) {
-                hasUnrecognized = true;
-                track.title = uri.LocalPath;
-                tracks.Add(track);
-                paths.Append(uri.LocalPath);
-                continue;
-            }
-            if (!authorized && track.error is not null)
-                continue;
-            tracks.Add(track);
-            paths.Append(fileName);
-        }
-        return new Playlist {
-            names = new Dictionary<string, List<Type>> { { name, [Type.Foobar2000] } },
             hasUnrecognized = hasUnrecognized,
             tracks = tracks,
             hash = paths.ToString().GetHashCode()
@@ -117,50 +77,109 @@ public partial record struct Playlist(
         };
     }
 
-    public static async Task<IReadOnlyDictionary<int, Playlist>> All(Tracks allTracks, bool authorized) {
-        Dictionary<int, Playlist> playlists = [];
+    // reads reverse engineered musicbee's proprietary format
+    private static async Task<Playlist> FromMusicBee(Tracks allTracks, string path, bool authorized) {
+        bool hasUnrecognized = false;
+        List<Track> tracks = [];
+        StringBuilder paths = new();
+        await using FileStream file = File.OpenRead(path);
+        using BinaryReader reader = new(file);
 
-        await AddOtherPlaylists(allTracks, playlists, authorized);
+        MusicBeePreRead(reader);
+        int trackCount = reader.ReadInt32();
+        for (int i = 1; i < trackCount; i++) {
+            string filePath = reader.ReadString();
+            string fileName = filePath.Split('\\').LastOrDefault("");
 
-        // no foobar2000 playlists
-        if (!File.Exists(Paths.foobar2000PlaylistIndex))
-            return playlists;
+            MusicBeeReadEmbedded(reader);
 
-        await AddFoobar2000Playlists(allTracks, playlists, authorized);
+            if (!allTracks.TryGet(fileName, out Track track)) {
+                hasUnrecognized = true;
+                track.title = filePath;
+                tracks.Add(track);
+                paths.Append(filePath);
+                continue;
+            }
+            if (!authorized && track.error is not null)
+                continue;
+            tracks.Add(track);
+            paths.Append(fileName);
+        }
 
-        return playlists;
+        return new Playlist {
+            names = new Dictionary<string, List<Type>> { { Path.GetFileNameWithoutExtension(path), [Type.MusicBee] } },
+            hasUnrecognized = hasUnrecognized,
+            tracks = tracks,
+            hash = paths.ToString().GetHashCode()
+        };
     }
 
-    private static async Task AddOtherPlaylists(Tracks allTracks, Dictionary<int, Playlist> playlists, bool authorized) {
+    private static void MusicBeePreRead(BinaryReader reader) {
+        reader.ReadByte(); // version
+        reader.ReadByte();
+        reader.ReadByte();
+        reader.ReadByte(); // padding
+        reader.ReadString();
+        reader.ReadByte();
+        reader.ReadBoolean();
+        int a = reader.ReadInt32();
+        for (int i = 0; i < a; i++) {
+            reader.ReadString();
+            int b = reader.ReadInt32();
+            for (int j = 0; j < b; j++) {
+                reader.ReadByte();
+                reader.ReadInt32();
+            }
+        }
+        // TODO: maybe actually use this someday?
+        /*
+         * enum PlaylistSorting {
+         *     None, ArtistAlbum, GenreArtistAlbum, YearArtistAlbum, YearAlbum, Album, Custom1, Custom2, Custom3,
+         *     Custom4, Rank, Artist, Custom5, Title, Custom6, Custom7, Custom8, ArtistYearAlbum, Random,
+         *     AlbumDateAdded, OrigYearAlbum, Ascending = 0, Descending = 128
+         * }
+         */
+        reader.ReadInt32();
+        a = reader.ReadInt32();
+        for (int i = 1; i < a; i++) {
+            reader.ReadByte();
+            reader.ReadInt32();
+        }
+    }
+
+    private static void MusicBeeReadEmbedded(BinaryReader reader) {
+        if (reader.ReadInt32() < int.MaxValue)
+            return;
+        // we don't care about its contents
+        reader.ReadString(); // title
+        reader.ReadString(); // artist
+        reader.ReadString(); // album artist
+        reader.ReadString(); // album
+        reader.ReadString(); // disc number
+        reader.ReadString(); // track number
+        reader.ReadInt32(); // rating?
+        reader.ReadInt32(); // duration?
+        reader.ReadString(); // album cover
+        if (reader.ReadBoolean()) {
+            reader.ReadString(); // file temp id
+            reader.ReadString(); // playback start time
+            reader.ReadString(); // playback end time
+        }
+        reader.ReadString(); // unused?
+    }
+
+    public static async Task<IReadOnlyDictionary<int, Playlist>> All(Tracks allTracks, bool authorized) {
+        Dictionary<int, Playlist> playlists = [];
         foreach (string path in Directory.EnumerateFiles(Paths.music)) {
             string fileName = Path.GetFileName(path);
             if (FilePlaylistRegex().IsMatch(fileName))
                 AddPlaylist(playlists, await FromFile(allTracks, path, authorized));
             else if (PowerampPlaylistRegex().IsMatch(fileName))
                 AddPlaylist(playlists, await FromPoweramp(allTracks, path, authorized));
+            else if (MusicBeePlaylistRegex().IsMatch(fileName))
+                AddPlaylist(playlists, await FromMusicBee(allTracks, path, authorized));
         }
-    }
-
-    private static async Task AddFoobar2000Playlists(Tracks allTracks, Dictionary<int, Playlist> playlists, bool authorized) {
-        foreach (string line in await File.ReadAllLinesAsync(Paths.foobar2000PlaylistIndex)) {
-            if (string.IsNullOrWhiteSpace(line))
-                continue;
-
-            string[] split = line.Split(':', 2);
-            if (split.Length != 2)
-                continue;
-
-            string guid = split[0];
-            string name = split[1];
-            if (string.IsNullOrWhiteSpace(guid) || string.IsNullOrWhiteSpace(name))
-                continue;
-
-            string path = Path.Join(Paths.foobar2000Playlists, $"playlist-{guid}.fplite");
-            if (!File.Exists(path))
-                continue;
-
-            AddPlaylist(playlists, await FromFoobar2000(allTracks, path, name, authorized));
-        }
+        return playlists;
     }
 
     private static void AddPlaylist(Dictionary<int, Playlist> playlists, Playlist playlist) {
@@ -181,4 +200,7 @@ public partial record struct Playlist(
 
     [GeneratedRegex(@"poweramp[0-9]+\.txt")]
     private static partial Regex PowerampPlaylistRegex();
+
+    [GeneratedRegex(@".*\.mbp")]
+    private static partial Regex MusicBeePlaylistRegex();
 }

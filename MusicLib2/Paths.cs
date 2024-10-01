@@ -12,16 +12,10 @@ public static class Paths {
         Environment.GetFolderPath(Environment.SpecialFolder.MyMusic) :
         Path.Join(baseDir, "music");
 
-    public static readonly string foobar2000Playlists = isDefaultBaseDir ?
-        Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "foobar2000-v2", "playlists-v2.0") :
-        Path.Join(baseDir, "foobar2000");
-
     public static readonly string drafts = Path.Join(baseDir, "drafts");
 
     //public static readonly string cacheDb = Path.Join(baseDir, "cache.db");
     public static readonly string auth = Path.Join(baseDir, "auth.txt");
-
-    public static readonly string foobar2000PlaylistIndex = Path.Join(foobar2000Playlists, "index.txt");
 
     // TODO: idk where to move this .......
     public static ImmutableHashSet<string> tokens { get; private set; } = ImmutableHashSet<string>.Empty;
@@ -31,8 +25,6 @@ public static class Paths {
             Directory.CreateDirectory(baseDir);
         if (!Directory.Exists(music))
             Directory.CreateDirectory(music);
-        if (!Directory.Exists(foobar2000Playlists))
-            Directory.CreateDirectory(foobar2000Playlists);
         if (!Directory.Exists(drafts))
             Directory.CreateDirectory(drafts);
     }
