@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -6,15 +5,6 @@ using MusicLib2;
 using TagLib;
 using YoutubeDLSharp;
 using File = System.IO.File;
-
-if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ML2_PROXY_VPN"))) {
-    new Thread(() => {
-        Process.Start(new ProcessStartInfo {
-            FileName = Paths.wireproxy,
-            Arguments = $"-c '{Environment.GetEnvironmentVariable("ML2_PROXY_VPN")}'"
-        });
-    }).Start();
-}
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
