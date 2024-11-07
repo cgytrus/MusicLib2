@@ -31,7 +31,8 @@ public partial class DownloadingFile : IProgress<DownloadProgress> {
         DownloadingFile file = new(id, dir);
 
         OptionSet overrides = new() {
-            WindowsFilenames = true
+            WindowsFilenames = true,
+            Proxy = Environment.GetEnvironmentVariable("ML2_PROXY")
         };
 
         try {
