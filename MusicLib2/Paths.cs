@@ -16,6 +16,7 @@ public static class Paths {
 
     //public static readonly string cacheDb = Path.Join(baseDir, "cache.db");
     public static readonly string auth = Path.Join(baseDir, "auth.txt");
+    public static readonly string wireproxy = Path.Join(baseDir, "wireproxy");
 
     // TODO: idk where to move this .......
     public static ImmutableHashSet<string> tokens { get; private set; } = ImmutableHashSet<string>.Empty;

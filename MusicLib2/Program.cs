@@ -10,7 +10,7 @@ using File = System.IO.File;
 if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ML2_PROXY_VPN"))) {
     new Thread(() => {
         Process.Start(new ProcessStartInfo {
-            FileName = "wireproxy",
+            FileName = Paths.wireproxy,
             Arguments = $"-c '{Environment.GetEnvironmentVariable("ML2_PROXY_VPN")}'"
         });
     }).Start();
