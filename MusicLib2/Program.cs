@@ -28,33 +28,6 @@ if (app.Environment.IsDevelopment()) {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-else {
-    // nugert my beloved
-    if (!File.Exists(Path.Combine(Utils.FfmpegBinaryName)))
-        await Utils.DownloadFFmpeg();
-    if (!File.Exists(Path.Combine(Utils.FfprobeBinaryName)))
-        await Utils.DownloadFFprobe();
-    if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
-        if (!File.Exists(Path.Combine("yt-dlp_linux"))) {
-            const string ytdlpDownloadUrl = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux";
-            File.WriteAllBytes(Path.Combine(Directory.GetCurrentDirectory(), Path.GetFileName(ytdlpDownloadUrl)),
-                await new HttpClient().GetByteArrayAsync(ytdlpDownloadUrl));
-        }
-        string ytdlpPath = Utils.GetFullPath("yt-dlp_linux");
-        string ffmpegPath = Utils.GetFullPath(Utils.FfmpegBinaryName);
-        string ffprobePath = Utils.GetFullPath(Utils.FfprobeBinaryName);
-        if (File.Exists(ytdlpPath))
-            File.SetUnixFileMode(ytdlpPath, File.GetUnixFileMode(ytdlpPath) | UnixFileMode.UserExecute);
-        if (File.Exists(ffmpegPath))
-            File.SetUnixFileMode(ffmpegPath, File.GetUnixFileMode(ffmpegPath) | UnixFileMode.UserExecute);
-        if (File.Exists(ffprobePath))
-            File.SetUnixFileMode(ffprobePath, File.GetUnixFileMode(ffprobePath) | UnixFileMode.UserExecute);
-    }
-    else {
-        if (!File.Exists(Path.Combine(Utils.YtDlpBinaryName)))
-            await Utils.DownloadYtDlp();
-    }
-}
 
 app.UseCors();
 

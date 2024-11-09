@@ -17,7 +17,31 @@ FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
 RUN dotnet publish "MusicLib2.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
+FROM alpine:latest AS ffmpeg
+RUN apk add wget unzip
+RUN mkdir /opt ; \
+    wget "https://github.com/ffbinaries/ffbinaries-prebuilt/releases/download/v6.1/ffmpeg-6.1-linux-64.zip" ; \
+    unzip "ffmpeg-6.1-linux-64.zip" -d /opt ; \
+    chmod +x /opt/ffmpeg
+
+FROM alpine:latest AS ffprobe
+RUN apk add wget unzip
+RUN mkdir /opt ; \
+    wget "https://github.com/ffbinaries/ffbinaries-prebuilt/releases/download/v6.1/ffprobe-6.1-linux-64.zip" ; \
+    unzip "ffprobe-6.1-linux-64.zip" -d /opt ; \
+    chmod +x /opt/ffprobe
+
+FROM alpine:latest AS yt-dlp
+RUN apk add wget
+RUN mkdir /opt ; \
+    cd /opt ; \
+    wget "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux" ; \
+    chmod +x /opt/yt-dlp_linux
+
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+COPY --from=ffmpeg /opt .
+COPY --from=ffprobe /opt .
+COPY --from=yt-dlp /opt .
 ENTRYPOINT ["dotnet", "MusicLib2.dll"]
