@@ -15,6 +15,7 @@ namespace MusicLib2;
 [JsonSerializable(typeof(Draft))]
 [JsonSerializable(typeof(Dictionary<uint, Draft.File>))]
 [JsonSerializable(typeof(DownloadLink))]
+[JsonSerializable(typeof(IEnumerable<string>))]
 internal partial class SourceGenerationContext : JsonSerializerContext;
 
 // UseStringEnumConverter doesn't allow me to set the naming policy

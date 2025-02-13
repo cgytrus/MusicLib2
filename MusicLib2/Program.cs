@@ -1,6 +1,7 @@
-using System.Runtime.InteropServices;
+using System.IO.Hashing;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 using MusicLib2;
 using TagLib;
 using YoutubeDLSharp;
@@ -120,7 +121,18 @@ draftGroup.MapPut("/{draftId}/meta", async (HttpContext ctx, uint draftId) => {
     return Results.NoContent();
 }).WithOpenApi();
 
-draftGroup.MapPut("/{draftId}/art", async (HttpContext ctx, uint draftId) => {
+draftGroup.MapGet("/{draftId}/arts", (HttpContext ctx, uint draftId) => {
+    if (!TryAuthorize(ctx))
+        return Task.FromResult(Results.Unauthorized());
+    string dir = Path.Join(Paths.drafts, draftId.ToString());
+    if (!Directory.Exists(dir))
+        return Task.FromResult(Results.NotFound("Draft does not exist."));
+    return Task.FromResult(Results.Json(
+        Directory.EnumerateFiles(dir, "art*.jpg").Select(path => Path.GetFileNameWithoutExtension(path)[3..]),
+        SourceGenerationContext.Default.IEnumerableString));
+});
+
+draftGroup.MapPost("/{draftId}/art", async (HttpContext ctx, uint draftId) => {
     if (!TryAuthorize(ctx))
         return Results.Unauthorized();
     if (ctx.Request.ContentType is null)
@@ -135,13 +147,72 @@ draftGroup.MapPut("/{draftId}/art", async (HttpContext ctx, uint draftId) => {
         }
         if (!Uri.IsWellFormedUriString(link, UriKind.Absolute))
             return Results.BadRequest("Invalid URI.");
-        await Draft.SaveArt(Path.Join(dir, "art.jpg"), await new HttpClient().GetStreamAsync(link));
+        await Draft.SaveArt(
+            Path.Join(dir, $"art{Regex.Replace(new Uri(link).Segments.Last(), "[^a-zA-Z0-9._-]", "_")}.jpg"),
+            await new HttpClient().GetStreamAsync(link));
     }
     else {
-        await Draft.SaveArt(Path.Join(dir, "art.jpg"), ctx.Request.Body);
+        string tempPath = Path.Join(dir, "arttemp.jpg");
+        await Draft.SaveArt(tempPath, ctx.Request.Body);
+        string path = Path.Join(dir,
+            $"art{Convert.ToBase64String(Crc64.Hash(await File.ReadAllBytesAsync(tempPath)))}.jpg");
+        File.Move(tempPath, path);
     }
     return Results.NoContent();
 }).WithOpenApi();
+
+draftGroup.MapGet("/{draftId}/art", (HttpContext ctx, uint draftId) => {
+    if (!TryAuthorize(ctx))
+        return Task.FromResult(Results.Unauthorized());
+    string dir = Path.Join(Paths.drafts, draftId.ToString());
+    if (!Directory.Exists(dir))
+        return Task.FromResult(Results.NotFound("Draft does not exist."));
+    string path = Path.Join(dir, "art.jpg");
+    if (!File.Exists(path))
+        return Task.FromResult(Results.NotFound("Art does not exist."));
+    return Task.FromResult(Results.File(path, "image/jpeg"));
+});
+
+draftGroup.MapGet("/{draftId}/art/{artId}", (HttpContext ctx, uint draftId, string artId) => {
+    if (!TryAuthorize(ctx))
+        return Task.FromResult(Results.Unauthorized());
+    string dir = Path.Join(Paths.drafts, draftId.ToString());
+    if (!Directory.Exists(dir))
+        return Task.FromResult(Results.NotFound("Draft does not exist."));
+    string path = Path.Join(dir, $"art{artId}.jpg");
+    if (!File.Exists(path))
+        return Task.FromResult(Results.NotFound("Art does not exist."));
+    return Task.FromResult(Results.File(path, "image/jpeg"));
+});
+
+draftGroup.MapPut("/{draftId}/art/{artId}", (HttpContext ctx, uint draftId, string artId) => {
+    if (!TryAuthorize(ctx))
+        return Task.FromResult(Results.Unauthorized());
+    string dir = Path.Join(Paths.drafts, draftId.ToString());
+    if (!Directory.Exists(dir))
+        return Task.FromResult(Results.NotFound("Draft does not exist."));
+    string path = Path.Join(dir, $"art{artId}.jpg");
+    if (!File.Exists(path))
+        return Task.FromResult(Results.NotFound("Art does not exist."));
+    string currentPath = Path.Join(dir, "art.jpg");
+    if (File.Exists(currentPath))
+        File.Delete(currentPath);
+    File.Move(path, currentPath);
+    return Task.FromResult(Results.NoContent());
+});
+
+draftGroup.MapDelete("/{draftId}/art/{artId}", (HttpContext ctx, uint draftId, string artId) => {
+    if (!TryAuthorize(ctx))
+        return Task.FromResult(Results.Unauthorized());
+    string dir = Path.Join(Paths.drafts, draftId.ToString());
+    if (!Directory.Exists(dir))
+        return Task.FromResult(Results.NotFound("Draft does not exist."));
+    string path = Path.Join(dir, $"art{artId}.jpg");
+    if (!File.Exists(path))
+        return Task.FromResult(Results.NotFound("Art does not exist."));
+    File.Delete(path);
+    return Task.FromResult(Results.NoContent());
+});
 
 draftGroup.MapGet("/{draftId}/files", async (HttpContext ctx, uint draftId) => {
     if (!TryAuthorize(ctx))
