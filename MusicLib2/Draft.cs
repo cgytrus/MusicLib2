@@ -28,7 +28,11 @@ public record struct Draft(
     ) {
         public enum Status { Downloading, Ready }
 
-        public readonly record struct DownloadingDto(string link, Status status, DownloadProgress progress);
+        public readonly record struct DownloadingDto(
+            string link,
+            Status status,
+            DownloadProgress progress,
+            string output);
 
         public readonly record struct ReadyDto(
             string link,

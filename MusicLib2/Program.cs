@@ -294,7 +294,8 @@ draftGroup.MapGet("/{draftId}/file/{fileId}", async (HttpContext ctx, uint draft
                 link = file.link,
                 status = file.status,
                 progress = DownloadingFile.Get(fileId)?.progress ??
-                    new DownloadProgress(DownloadState.Error, data: "Downloading file does not exist.")
+                    new DownloadProgress(DownloadState.Error, data: "Downloading file does not exist."),
+                output = DownloadingFile.Get(fileId)?.output ?? ""
             },
             SourceGenerationContext.Default.DownloadingDto
         ),

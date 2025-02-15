@@ -9,14 +9,16 @@ using YoutubeDLSharp.Options;
 
 namespace MusicLib2;
 
-public partial class DownloadingFile : IProgress<DownloadProgress> {
+public partial class DownloadingFile : IProgress<DownloadProgress>, IProgress<string> {
     private static readonly Dictionary<uint, DownloadingFile> downloadingFiles = [];
 
     public DownloadProgress progress { get; private set; } = new(DownloadState.None);
+    public string output => string.Join('\n', _output);
 
     private readonly uint _id;
     private readonly string _dir;
     private readonly CancellationTokenSource _cts;
+    private List<string> _output = [];
 
     private DownloadingFile(uint id, string dir) {
         _id = id;
@@ -115,12 +117,14 @@ public partial class DownloadingFile : IProgress<DownloadProgress> {
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
                     ytdl.YoutubeDLPath = "yt-dlp_linux";
 
+                file.progress = new DownloadProgress(DownloadState.None);
+                file._output.Clear();
                 ytdl.RunAudioDownload(
                     link,
                     AudioConversionFormat.Best,
                     file._cts.Token,
                     file,
-                    null,
+                    file,
                     overrides
                 );
             }
@@ -195,6 +199,10 @@ public partial class DownloadingFile : IProgress<DownloadProgress> {
         catch (Exception ex) {
             progress = new DownloadProgress(DownloadState.Error, data: ex.ToString());
         }
+    }
+
+    public void Report(string value) {
+        _output.Add(value);
     }
 
     [GeneratedRegex(@"[^a-zA-Z0-9-_.,!()[\] ]")]
