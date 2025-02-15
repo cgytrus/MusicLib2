@@ -32,7 +32,7 @@ public record struct Draft(
             string link,
             Status status,
             DownloadProgress progress,
-            string output);
+            string? output);
 
         public readonly record struct ReadyDto(
             string link,
