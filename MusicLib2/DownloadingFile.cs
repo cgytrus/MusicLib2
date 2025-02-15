@@ -34,6 +34,7 @@ public partial class DownloadingFile : IProgress<DownloadProgress>, IProgress<st
 
         OptionSet overrides = new() {
             RestrictFilenames = false,
+            NoRestrictFilenames = true,
             WindowsFilenames = true,
             Mtime = false,
             Proxy = Environment.GetEnvironmentVariable("ML2_PROXY"),
@@ -112,9 +113,7 @@ public partial class DownloadingFile : IProgress<DownloadProgress>, IProgress<st
                 }, file._cts.Token);
             }
             else {
-                YoutubeDL ytdl = new(1) {
-                    RestrictFilenames = true
-                };
+                YoutubeDL ytdl = new(1);
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
                     ytdl.YoutubeDLPath = "yt-dlp_linux";
 
