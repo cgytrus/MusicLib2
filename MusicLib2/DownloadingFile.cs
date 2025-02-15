@@ -32,7 +32,9 @@ public partial class DownloadingFile : IProgress<DownloadProgress> {
 
         OptionSet overrides = new() {
             WindowsFilenames = true,
-            Proxy = Environment.GetEnvironmentVariable("ML2_PROXY")
+            Mtime = false,
+            Proxy = Environment.GetEnvironmentVariable("ML2_PROXY"),
+            Cookies = Environment.GetEnvironmentVariable("ML2_COOKIES")
         };
 
         try {
