@@ -13,7 +13,7 @@ public partial class DownloadingFile : IProgress<DownloadProgress>, IProgress<st
     private static readonly Dictionary<uint, DownloadingFile> downloadingFiles = [];
 
     public DownloadProgress progress { get; private set; } = new(DownloadState.None);
-    public string output => string.Join('\n', _output);
+    public IEnumerable<string> output => _output;
 
     private readonly uint _id;
     private readonly string _dir;
