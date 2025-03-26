@@ -15,6 +15,11 @@ public readonly struct Tracks {
         ".webm"
     ];
 
+    private static readonly HashSet<string> ignoredPaths = [
+        Path.Join(Paths.music, ".stfolder"),
+        Path.Join(Paths.music, ".stversions")
+    ];
+
     private Tracks(IReadOnlyDictionary<string, Track> tracks) {
         all = tracks;
 
@@ -37,8 +42,10 @@ public readonly struct Tracks {
 
     public static Tracks All() {
         Dictionary<string, Track> tracks = [];
-        foreach (string path in Directory.EnumerateFiles(Paths.music)) {
+        foreach (string path in Directory.EnumerateFiles(Paths.music, "*", SearchOption.AllDirectories)) {
             if (!allowedExtensions.Contains(Path.GetExtension(path)))
+                continue;
+            if (ignoredPaths.Any(x => Path.GetFullPath(path).StartsWith(Path.GetFullPath(x))))
                 continue;
             tracks.Add(Path.GetFileName(path), Track.FromFile(path));
         }
